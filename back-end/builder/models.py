@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 
 genericMaxLength = 100
+longMaxLength = 500 # for longer string e.g. links
 
 # Create your models here.
 class CPU(models.Model):
@@ -18,9 +19,9 @@ class CPU(models.Model):
     TDP = models.PositiveIntegerField()
     cacheSize = models.PositiveIntegerField() # L2 + L3
     coolerIncluded = models.BooleanField()
-    integratedGPU = models.CharField(max_length=genericMaxLength)
+    integratedGPU = models.CharField(max_length=genericMaxLength) # can be None or specific model
     price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=500)
+    buyLink = models.URLField(max_length=longMaxLength)
 
 
 class GPU(models.Model):
@@ -33,7 +34,7 @@ class GPU(models.Model):
     VRAM = models.PositiveIntegerField()
     TDP = models.PositiveIntegerField()
     price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=500)
+    buyLink = models.URLField(max_length=longMaxLength)
 
 
 class Mobo(models.Model):
@@ -48,7 +49,7 @@ class Mobo(models.Model):
     mDotTwoSlots = models.PositiveIntegerField()
     sataSlots = models.PositiveIntegerField()
     price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=500)
+    buyLink = models.URLField(max_length=longMaxLength)
     
 class RAM(models.Model):
     name = models.CharField(max_length=genericMaxLength)
@@ -57,7 +58,7 @@ class RAM(models.Model):
     speed = models.PositiveIntegerField()
     amount = models.PositiveBigIntegerField()
     price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=500)
+    buyLink = models.URLField(max_length=longMaxLength)
 
 
 class Cooler(models.Model):
@@ -67,7 +68,7 @@ class Cooler(models.Model):
     isLiquid = models.BooleanField()
     size = models.PositiveIntegerField(null=True) # e.g. 360mm (only for water)
     price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=500)
+    buyLink = models.URLField(max_length=longMaxLength)
 
 
 class PSU(models.Model):
@@ -78,7 +79,7 @@ class PSU(models.Model):
     wattage = models.PositiveIntegerField()
     efficiency = models.CharField(max_length=genericMaxLength)
     price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=500)
+    buyLink = models.URLField(max_length=longMaxLength)
 
 
 class Case(models.Model):
@@ -87,6 +88,6 @@ class Case(models.Model):
     formFactor = models.CharField(max_length=genericMaxLength)
     moboFormFactors = ArrayField(models.CharField(max_length=genericMaxLength))
     price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=500)
+    buyLink = models.URLField(max_length=longMaxLength)
 
     

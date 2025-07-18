@@ -7,6 +7,4 @@ urlpatterns = [
     path("addCPU/", views.addCPU.as_view()),
 ]
 
-
-
 urlpatterns = format_suffix_patterns(urlpatterns)
