@@ -19,8 +19,7 @@ Have you ever wanted to build your own personal computer but didn’t know where
 ## 🛠️ Getting Started
 
 MetaBuild will be hosted and made available soon. A deployment link will be provided here very shortly. Stay tuned!  
-<br><br>
-
+<br>
 This repo contains both the front and back end for ease of access and demonstration purposes:  
 - If you're trying to host on your own, then you'll need to have separate repos (or folders if running locally) for the front-end and back-end, respectively. 
 - If you're only interested in the back-end (i.e. the algorithm), then you will need to inspect the code (views.py) to understand how to interact with it, as end-point documentation has not been made available.
@@ -40,7 +39,7 @@ This repo contains both the front and back end for ease of access and demonstrat
 ## 📝 Notes
 > ⚠️ Countires are limited by the Pcpartpicker API and are the following: Australia, Austria, Belgium, Canada, Czech Republic, Denmark, Finland, France, Germany, Hungary, Ireland, Italy, Netherlands, New Zealand, Norway, Portugal, Romania, Saudi Arabia, Slovakia, Spain, Sweden, United Kingdom, United States.
 
-> Credit to Matyáš Cimbulka for developing the Pcpartpicker API; this tool would not have been possible without it.  
+> Credit to Matyáš Cimbulka for developing the Pcpartpicker API; this tool would not have been possible without it.
 > You can find it at https://apify.com/matyascimbulka/pcpartpicker-scraper.
 
 ---
