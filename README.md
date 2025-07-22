@@ -2,7 +2,7 @@
 
 Have you ever wanted to build your own personal computer but didn’t know where to start or which parts to choose?  
 **MetaBuild** takes the guesswork out of PC building and is the ideal tool to get you started on your quest.
-- You simply enter your budget and preferences for the build, and the tool will run a smart algorithm to suggest the best build for **you**.
+- You simply enter your budget and preferences for the build, and the tool will run a smart algorithm to create and suggest the best possiable build for **you**.
 - The tool returns a list of all the parts constituting the build, each with a link for you to conveniently order from a trusted store.
 ---
 
