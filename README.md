@@ -13,7 +13,7 @@ Have you ever wanted to build your own personal computer but didn’t know where
 - 🧮 **Smart Algorithm** – The tool utilizes a smart algorithm that takes into account real-time prices, availability, compatibility, specs, and much more.
 - 🔗 **Buy Links** - Get links to conveniently buy each component from Amazon, Newegg, Best Buy, and many more stores worldwide*.
 - 🌎 **Region-Aware Selection** – Automatically get parts based on your country, ensuring local pricing, availability, and stores.
-- ➕ **Extensive Parts Pool** - With 100s of parts in the database, you can be sure that no parts will go under the radar.
+- ➕ **Extensive Parts Pool** - With 100s of parts in a database that's frequently updated, you can be sure that no part will go under the radar.
 
 ---
 
