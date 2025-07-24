@@ -7,6 +7,7 @@ longMaxLength = 500 # for longer string e.g. links
 
 # Create your models here.
 class CPU(models.Model):
+    pcPartPickerId = models.CharField(max_length=genericMaxLength, unique=True)
     model = models.CharField(max_length=genericMaxLength, unique=True)
     brand = models.CharField(max_length=genericMaxLength)
     series = models.CharField(max_length=genericMaxLength)
@@ -20,11 +21,25 @@ class CPU(models.Model):
     cacheSize = models.PositiveIntegerField() # L2 + L3
     coolerIncluded = models.BooleanField()
     integratedGPU = models.CharField(max_length=genericMaxLength) # can be None or specific model
-    price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=longMaxLength)
+    rating = models.PositiveIntegerField(null=True, blank=True)
 
+    def __str__(self):
+        return self.model
+
+class CPUPrice(models.Model):
+    CPUId = models.ForeignKey(CPU, on_delete=models.CASCADE)
+    country = models.CharField(max_length=genericMaxLength)
+    available = models.BooleanField()
+    price = models.PositiveIntegerField()
+    buyLink = models.URLField(max_length=longMaxLength, null=True, blank=True)
+
+    def __str__(self):
+        return self.CPUId.model
+
+    
 
 class GPU(models.Model):
+    pcPartPickerId = models.CharField(max_length=genericMaxLength, unique=True)
     model = models.CharField(max_length=genericMaxLength, unique=True)
     brand = models.CharField(max_length=genericMaxLength) # e.g. nvidia, amd
     manufacturer = models.CharField(max_length=genericMaxLength) # e.g. gigabyte, asus
@@ -33,9 +48,16 @@ class GPU(models.Model):
     boostClock = models.PositiveIntegerField()
     VRAM = models.PositiveIntegerField()
     TDP = models.PositiveIntegerField()
-    price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=longMaxLength)
 
+    def __str__(self):
+        return self.model
+
+class GPUPrice(models.Model):
+    GPUId = models.ForeignKey(GPU, on_delete=models.CASCADE)
+    country = models.CharField(max_length=genericMaxLength)
+    available = models.BooleanField()
+    price = models.PositiveIntegerField()
+    buyLink = models.URLField(max_length=longMaxLength, null=True, blank=True)
 
 class Mobo(models.Model):
     name = models.CharField(max_length=genericMaxLength, unique=True)

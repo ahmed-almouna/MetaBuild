@@ -1,4 +1,6 @@
 import re
+import math
+
 
 
 
@@ -59,7 +61,10 @@ def getBuyLink(listings):
                 break
     return buyLink
 
-
+def getPrice(lowestPrice):
+    if lowestPrice is not None:
+        lowestPrice = math.ceil(lowestPrice)
+    return lowestPrice
 
     
 def roundToNearest(number): # rounds to nears 100 if number is 999 or below, rounds to nearest 1000 if number is 1000 to 99999.

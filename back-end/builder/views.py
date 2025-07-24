@@ -44,10 +44,11 @@ class addCPU(APIView):
         specs = data.get('specifications', {})
         
         cpuData = {
+            'pcPartPickerId': data.get('id'),
             'model': getModel(data.get('name')),
             'brand': specs.get('Manufacturer'),
             'series': getSeries(specs.get('Series')),
-            'generation': getGeneration(data.get('name')), #####################test with x3d
+            'generation': getGeneration(data.get('name')),
             'socket': specs.get('Socket'),
             'architecture': specs.get('Microarchitecture'),
             'coreCount': specs.get('Core Count'),
@@ -56,18 +57,33 @@ class addCPU(APIView):
             'TDP': getWattage(specs.get('TDP')),
             'cacheSize': getCacheSize(specs.get('L2 Cache'), specs.get('L3 Cache')),
             'coolerIncluded': specs.get('Includes Cooler'),
-            'integratedGPU': specs.get('Integrated Graphics'), ############### check if None works fine
-            'price': math.ceil(listings.get('lowestPrice')),
+            'integratedGPU': specs.get('Integrated Graphics'),
+            # 'price': math.ceil(listings.get('lowestPrice')),
+            # 'buyLink': getBuyLink(listings.get('prices'))
+        }
+
+        cpuSerializer = CPUSerializer(data=cpuData)
+
+        if cpuSerializer.is_valid() != True:
+            return Response(cpuSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        cpuInstance = cpuSerializer.save()
+
+        priceData = {
+            'CPUId': cpuInstance.id,
+            'country': 'US',
+            'available': True,
+            'price': getPrice(listings.get('lowestPrice')),
             'buyLink': getBuyLink(listings.get('prices'))
         }
 
-        serializer = CPUSerializer(data=cpuData)
+        priceSerializer = CPUPriceSerializer(data=priceData)
 
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        if priceSerializer.is_valid():
+            priceSerializer.save()
+        
+        return Response(cpuSerializer.data, status=status.HTTP_201_CREATED)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
