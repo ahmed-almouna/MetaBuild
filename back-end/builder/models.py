@@ -3,7 +3,7 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 
 genericMaxLength = 100
-longMaxLength = 500 # for longer string e.g. links
+longMaxLength = 500 # for generic string that might be bigger that 100 charachters long e.g. links
 
 # Create your models here.
 class CPU(models.Model):
@@ -36,14 +36,12 @@ class CPUPrice(models.Model):
     def __str__(self):
         return self.CPUId.model
 
-    
-
 class GPU(models.Model):
-    pcPartPickerId = models.CharField(max_length=genericMaxLength, unique=True)
-    model = models.CharField(max_length=genericMaxLength, unique=True)
+    pcPartPickerId = models.CharField(max_length=genericMaxLength, unique=True, default="car")
+    model = models.CharField(max_length=genericMaxLength, unique=True) # e.g. RTX 3060
     brand = models.CharField(max_length=genericMaxLength) # e.g. nvidia, amd
     manufacturer = models.CharField(max_length=genericMaxLength) # e.g. gigabyte, asus
-    series = models.CharField(max_length=genericMaxLength) # e.g. 5000, 7000
+    series = models.CharField(max_length=genericMaxLength) # e.g. 5000, 7000 *note this is like generation to CPU
     name = models.CharField(max_length=genericMaxLength) # e.g. Ventus 2X
     boostClock = models.PositiveIntegerField()
     VRAM = models.PositiveIntegerField()
@@ -58,6 +56,9 @@ class GPUPrice(models.Model):
     available = models.BooleanField()
     price = models.PositiveIntegerField()
     buyLink = models.URLField(max_length=longMaxLength, null=True, blank=True)
+
+    def __str__(self):
+        return self.GPUId.model
 
 class Mobo(models.Model):
     name = models.CharField(max_length=genericMaxLength, unique=True)
