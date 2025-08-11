@@ -38,6 +38,16 @@ def getPSUName(name, manufacturer):
             name = match.group(1)
     return name
 
+def getCoolerName(name, model, manufacturer):
+    if model is not None:
+        name = model
+    elif name is not None and manufacturer is not None:
+        name = re.sub(re.escape(manufacturer), '', name, re.IGNORECASE)
+        match = re.search(r'(.+)\s(\d+([.]\d+)?)\s(CFM)', name, re.IGNORECASE)
+        if match:
+            name = match.group(1)
+    return name
+
 def getSeries(series):
     if series is not None:
         series = re.sub(r'(AMD|INTEL)\s', '', series, re.IGNORECASE)
@@ -61,7 +71,7 @@ def getGeneration(name, type):
     return generation
 
 
-def getSpeed(speed): # convert GHz to MHz e.g. 5.7 GHz to 5700
+def getCPUSpeed(speed): # convert GHz to MHz e.g. 5.7 GHz to 5700
     if speed is not None:
         match = re.search(r'\d+([.]\d+)?', speed)
         if match:
@@ -118,7 +128,7 @@ def getPrice(lowestPrice):
     return lowestPrice
 
 
-def getBrand(name):
+def getGPUBrand(name):
     if name is not None:
         if re.search(r'(RTX|GTX)', name, re.IGNORECASE):
             name = 'NVIDIA'
@@ -128,7 +138,7 @@ def getBrand(name):
             name = 'INTEL'
     return name
 
-def getEfficiency(efficiency):
+def getPSUEfficiency(efficiency):
     if efficiency is not None:
         match = re.search(r'(Bronze|Silver|Gold|Platinum|Diamond)', efficiency, re.IGNORECASE)
         if match:
@@ -136,6 +146,22 @@ def getEfficiency(efficiency):
         else:
             efficiency = '80+'
     return efficiency
+
+def getCoolerType(type):
+    if type is not None:
+        match = re.search(r'Yes', type, re.IGNORECASE)
+        if match:
+            type = match.group()
+    return type
+
+def getCoolerWidth(width):
+    if width is not None:
+        match = re.search(r'(\d{3})(\smm)', width)
+        if match:
+            width = int(match.group(1))
+        else:
+            width = 0
+    return width
 
 # Rounds to nearest 100 if number is 999 or below, rounds to nearest 1000 if number is 1000 to 99999.
 def roundToNearest(number): 

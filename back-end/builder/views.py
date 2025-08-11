@@ -56,7 +56,7 @@ class addCPU(APIView):
             'architecture': specs.get('Microarchitecture'),
             'coreCount': specs.get('Core Count'),
             'threadCount': specs.get('Thread Count'),
-            'boostClock': getSpeed(specs.get('Performance Core Boost Clock')),
+            'boostClock': getCPUSpeed(specs.get('Performance Core Boost Clock')),
             'tdp': getNumber(specs.get('TDP')),
             'cacheSize': getCPUCacheSize(specs.get('L2 Cache'), specs.get('L3 Cache')),
             'coolerIncluded': specs.get('Includes Cooler', False),
@@ -94,7 +94,7 @@ class addGPU(APIView):
         gpuData = {
             'pcPartPickerId': data.get('id'),
             'model': getModel(data.get('name'), type="GPU"),
-            'brand': getBrand(specs.get('Chipset')),
+            'brand': getGPUBrand(specs.get('Chipset')),
             'manufacturer': specs.get('Manufacturer'),
             'name': getGPUName(data.get('name')),
             'series': getGeneration(data.get('name'), type="GPU"),
@@ -180,7 +180,7 @@ class addPSU(APIView):
             'name': getPSUName(data.get('name'), specs.get('Manufacturer')),
             'wattage': getNumber(specs.get('Wattage')),
             'isModular': specs.get('Modular', "No") == 'Full',
-            'efficiency': getEfficiency(specs.get('Efficiency Rating', "80+")),
+            'efficiency': getPSUEfficiency(specs.get('Efficiency Rating', "80+")),
             'formFactor': getFormFactor(specs.get('Type', "ATX")),
             'cpu8PinConnectors': getNumber(specs.get('EPS 8-pin Connectors')),
             'gpu16PinConnectors': getNumber(specs.get('PCIe 16-pin 12VHPWR/12V-2x6 Connectors')),
@@ -211,3 +211,41 @@ class addPSU(APIView):
             priceSerializer.save()
         
         return Response(psuSerializer.data, status=status.HTTP_201_CREATED)
+
+
+class addCooler(APIView):
+    def post(self, request):
+        data = request.data
+        listings = data.get('prices', {})
+        specs = data.get('specifications', {})
+        
+        coolerData = {
+            'pcPartPickerId': data.get('id'),
+            'manufacturer': specs.get('Manufacturer'),
+            'name': getCoolerName(data.get('name'), specs.get('Model'), specs.get('Manufacturer')),
+            'supportedSockets': specs.get('CPU Socket'),
+            'isLiquid': getCoolerType(specs.get('Water Cooled')),
+            'height': getNumber(specs.get('Height', 0)),
+            'width': getCoolerWidth(specs.get('Water Cooled', 0)),
+        }
+
+        coolerSerializer = CoolerSerializer(data=coolerData)
+
+        if coolerSerializer.is_valid() != True:
+            return Response(coolerSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        coolerInstance = coolerSerializer.save()
+
+        priceData = {
+            'CoolerId': coolerInstance.id,
+            'country': 'US',
+            'price': getPrice(listings.get('lowestPrice')),
+            'buyLink': getBuyLink(listings.get('prices'))
+        }
+
+        priceSerializer = CoolerPriceSerializer(data=priceData)
+
+        if priceSerializer.is_valid():
+            priceSerializer.save()
+        
+        return Response(coolerSerializer.data, status=status.HTTP_201_CREATED)

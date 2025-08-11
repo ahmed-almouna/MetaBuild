@@ -47,3 +47,13 @@ class PSUPriceSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class CoolerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cooler
+        fields = '__all__'
+
+
+class CoolerPriceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CoolerPrice
+        fields = '__all__'

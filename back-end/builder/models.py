@@ -39,7 +39,6 @@ class CPUPrice(models.Model):
         constraints = [
             UniqueConstraint(fields=['CPUId', 'country'], name='unique_cpu_country_price') # 1 price per CPU per country
         ]
-
     def __str__(self):
         return self.CPUId.model
 
@@ -73,7 +72,6 @@ class GPUPrice(models.Model):
         constraints = [
             UniqueConstraint(fields=['GPUId', 'country'], name='unique_gpu_country_price')
         ]
-
     def __str__(self):
         return self.GPUId.model
 
@@ -107,11 +105,32 @@ class RAM(models.Model):
 class Cooler(models.Model):
     pcPartPickerId = models.CharField(max_length=genericMaxLength, unique=True)
     manufacturer = models.CharField(max_length=genericMaxLength) # e.g. Cooler Master
-    name = models.CharField(max_length=genericMaxLength, unique=True) 
+    name = models.CharField(max_length=genericMaxLength) 
     supportedSockets = ArrayField(models.CharField(max_length=genericMaxLength))
     isLiquid = models.BooleanField()
-    height = models.PositiveIntegerField()
+    height = models.PositiveIntegerField() # in mm
     width = models.PositiveIntegerField() # only for water coolers
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name', 'height', 'width'], name='unique_cooler_name_height_width') # some coolers have the same 
+            # model name for different variants e.g. 'Aqua Elite V3' for the 120, 240, and 360 mm versions
+        ]
+    def __str__(self):
+        return self.name
+
+class CoolerPrice(models.Model):
+    CoolerId = models.ForeignKey(Cooler, on_delete=models.CASCADE)
+    country = models.CharField(max_length=genericMaxLength)
+    price = models.PositiveIntegerField()
+    buyLink = models.URLField(max_length=longMaxLength)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['CoolerId', 'country'], name='unique_cooler_country_price')
+        ]
+    def __str__(self):
+        return self.CoolerId.name
 
 
 class PSU(models.Model):
@@ -142,11 +161,11 @@ class PSUPrice(models.Model):
 
     def __str__(self):
         return str(self.PSUId.wattage)
-
     class Meta:
         constraints = [
             UniqueConstraint(fields=['PSUId', 'country'], name='unique_psu_country_price')
         ]
+
 
 class Storage(models.Model):
     pcPartPickerId = models.CharField(max_length=genericMaxLength, unique=True)
@@ -158,13 +177,12 @@ class Storage(models.Model):
     cacheSize = models.PositiveIntegerField() # in MB (Note: might be None)
     isNVMe = models.BooleanField() # for SSDs
 
-    def __str__(self):
-        return self.name + ' ' + str(self.size) + 'GB'
-
     class Meta:
         constraints = [
             UniqueConstraint(fields=['name', 'size'], name='unique_storage_name_size')
         ]
+    def __str__(self):
+        return self.name + ' ' + str(self.size) + ' GB'
 
 
 class StoragePrice(models.Model):
@@ -177,7 +195,6 @@ class StoragePrice(models.Model):
         constraints = [
             UniqueConstraint(fields=['StorageId', 'country'], name='unique_storage_country_price')
         ]
-
     def __str__(self):
         return self.StorageId.name + ' ' + str(self.StorageId.size) + 'GB'
     

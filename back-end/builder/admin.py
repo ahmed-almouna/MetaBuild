@@ -15,5 +15,6 @@ admin.site.register(CPUPrice)
 admin.site.register(GPUPrice)
 admin.site.register(StoragePrice)
 admin.site.register(PSUPrice)
+admin.site.register(CoolerPrice)
 
 
