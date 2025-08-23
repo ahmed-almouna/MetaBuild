@@ -11,6 +11,8 @@ urlpatterns = [
     path("addStorage/", views.addStorage.as_view()),
     path("addPSU/", views.addPSU.as_view()),
     path("addCooler/", views.addCooler.as_view()),
+    path("addRAM/", views.addRAM.as_view()),
+    path("addCase/", views.addCase.as_view()),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

@@ -16,5 +16,7 @@ admin.site.register(GPUPrice)
 admin.site.register(StoragePrice)
 admin.site.register(PSUPrice)
 admin.site.register(CoolerPrice)
+admin.site.register(RAMPrice)
+admin.site.register(CasePrice)
 
 

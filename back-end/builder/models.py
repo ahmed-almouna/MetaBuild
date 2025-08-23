@@ -97,9 +97,30 @@ class RAM(models.Model):
     pcPartPickerId = models.CharField(max_length=genericMaxLength, unique=True)
     manufacturer = models.CharField(max_length=genericMaxLength)
     name = models.CharField(max_length=genericMaxLength)
-    size = models.PositiveBigIntegerField()
+    count = models.PositiveIntegerField() # number of sticks e.g. 1, 2, 4
+    size = models.PositiveBigIntegerField() # per stick
     type = models.CharField(max_length=genericMaxLength)
     speed = models.PositiveIntegerField()
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name', 'count', 'size'], name='unique_ram_name_count_size')
+        ]
+    def __str__(self):
+        return self.name + ' ' + str(self.count) + ' x ' + str(self.size) + 'GB'
+
+class RAMPrice(models.Model):
+    RAMId = models.ForeignKey(RAM, on_delete=models.CASCADE)
+    country = models.CharField(max_length=genericMaxLength)
+    price = models.PositiveIntegerField()
+    buyLink = models.URLField(max_length=longMaxLength)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['RAMId', 'country'], name='unique_ram_country_price')
+        ]
+    def __str__(self):
+        return self.RAMId.name + ' ' + str(self.RAMId.count) + ' x ' + str(self.RAMId.size) + 'GB'
 
 
 class Cooler(models.Model):
@@ -110,6 +131,7 @@ class Cooler(models.Model):
     isLiquid = models.BooleanField()
     height = models.PositiveIntegerField() # in mm
     width = models.PositiveIntegerField() # only for water coolers
+    rating = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         constraints = [
@@ -117,7 +139,7 @@ class Cooler(models.Model):
             # model name for different variants e.g. 'Aqua Elite V3' for the 120, 240, and 360 mm versions
         ]
     def __str__(self):
-        return self.name
+        return self.name 
 
 class CoolerPrice(models.Model):
     CoolerId = models.ForeignKey(Cooler, on_delete=models.CASCADE)
@@ -152,7 +174,6 @@ class PSU(models.Model):
     def __str__(self):
         return self.name
 
-
 class PSUPrice(models.Model):
     PSUId = models.ForeignKey(PSU, on_delete=models.CASCADE)
     country = models.CharField(max_length=genericMaxLength)
@@ -174,7 +195,7 @@ class Storage(models.Model):
     size = models.PositiveIntegerField() # in GB
     isSSD = models.BooleanField()
     formFactor = models.CharField(max_length=genericMaxLength) # e.g. M.2, 2.5, 3.5
-    cacheSize = models.PositiveIntegerField() # in MB (Note: might be None)
+    cacheSize = models.PositiveIntegerField() # in MB
     isNVMe = models.BooleanField() # for SSDs
 
     class Meta:
@@ -183,7 +204,6 @@ class Storage(models.Model):
         ]
     def __str__(self):
         return self.name + ' ' + str(self.size) + ' GB'
-
 
 class StoragePrice(models.Model):
     StorageId = models.ForeignKey(Storage, on_delete=models.CASCADE)
@@ -202,12 +222,31 @@ class Case(models.Model):
     pcPartPickerId = models.CharField(max_length=genericMaxLength, unique=True)
     manufacturer = models.CharField(max_length=genericMaxLength)
     name = models.CharField(max_length=genericMaxLength, unique=True)
-    formFactor = models.CharField(max_length=genericMaxLength) # e.g. ATX Mid Tower
-    moboFormFactors = ArrayField(models.CharField(max_length=genericMaxLength))
+    type = models.CharField(max_length=genericMaxLength) # e.g. ATX, micro ATX, mini ITX
+    formFactor = models.CharField(max_length=genericMaxLength) # e.g. full tower, mid tower, mini tower
+    moboFormFactors = ArrayField(models.CharField(max_length=genericMaxLength)) # supported mobo form factors
     maxGPULength = models.PositiveIntegerField()
     expansionSlots = models.PositiveIntegerField()
-    height = models.PositiveIntegerField()
-    width = models.PositiveIntegerField()
-    depth = models.PositiveIntegerField()
+    height = models.PositiveIntegerField() # how tall when the case is placed in its correct orientation
+    width = models.PositiveIntegerField() # the shorter side of the 2 other dimensions
+    length = models.PositiveIntegerField() # the longer side of the 2 other dimensions
     threePointFiveDriveBays = models.PositiveIntegerField()
     twoPointFiveDriveBays = models.PositiveIntegerField()
+    includedPSUWattage = models.PositiveIntegerField() # wattage of included PSU if any
+
+    def __str__(self):
+        return self.name
+
+
+class CasePrice(models.Model):
+    CaseId = models.ForeignKey(Case, on_delete=models.CASCADE)
+    country = models.CharField(max_length=genericMaxLength)
+    price = models.PositiveIntegerField()
+    buyLink = models.URLField(max_length=longMaxLength)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['CaseId', 'country'], name='unique_case_country_price')
+        ]
+    def __str__(self):
+        return self.CaseId.name

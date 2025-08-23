@@ -50,7 +50,7 @@ class addCPU(APIView):
             'pcPartPickerId': data.get('id'),
             'model': getModel(data.get('name'), type="CPU"),
             'brand': specs.get('Manufacturer'),
-            'series': getSeries(specs.get('Series')),
+            'series': getCPUSeries(specs.get('Series')),
             'generation': getGeneration(data.get('name'), type="CPU"),
             'socket': specs.get('Socket'),
             'architecture': specs.get('Microarchitecture'),
@@ -141,7 +141,7 @@ class addStorage(APIView):
             'name': getStorageName(data.get('name'), specs.get('Manufacturer')),
             'size': getStorageSize(specs.get('Capacity')),
             'isSSD': specs.get('Type') == 'SSD',
-            'formFactor': getFormFactor(specs.get('Form Factor')),
+            'formFactor': getStorageFormFactor(specs.get('Form Factor')),
             'cacheSize': getNumber(specs.get('Cache', 0)),
             'isNVMe': specs.get('NVME'),
         }
@@ -181,7 +181,7 @@ class addPSU(APIView):
             'wattage': getNumber(specs.get('Wattage')),
             'isModular': specs.get('Modular', "No") == 'Full',
             'efficiency': getPSUEfficiency(specs.get('Efficiency Rating', "80+")),
-            'formFactor': getFormFactor(specs.get('Type', "ATX")),
+            'formFactor': specs.get('Type', "ATX"),
             'cpu8PinConnectors': getNumber(specs.get('EPS 8-pin Connectors')),
             'gpu16PinConnectors': getNumber(specs.get('PCIe 16-pin 12VHPWR/12V-2x6 Connectors')),
             'gpu12PinConnectors': getNumber(specs.get('PCIe 12-pin Connectors')),
@@ -249,3 +249,86 @@ class addCooler(APIView):
             priceSerializer.save()
         
         return Response(coolerSerializer.data, status=status.HTTP_201_CREATED)
+
+
+class addRAM(APIView):
+    def post(self, request):
+        data = request.data
+        listings = data.get('prices', {})
+        specs = data.get('specifications', {})
+        
+        ramData = {
+            'pcPartPickerId': data.get('id'),
+            'manufacturer': specs.get('Manufacturer'),
+            'name': getRAMName(data.get('name'), specs.get('Manufacturer')),
+            'count': getNumber(specs.get('Modules')),
+            'size': getRAMSize(specs.get('Modules')),
+            'type': getRAMType(specs.get('Speed')),
+            'speed': getRAMSpeed(specs.get('Speed', 0)),
+        }
+
+        ramSerializer = RAMSerializer(data=ramData)
+
+        if ramSerializer.is_valid() != True:
+            return Response(ramSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        ramInstance = ramSerializer.save()
+
+        priceData = {
+            'RAMId': ramInstance.id,
+            'country': 'US',
+            'price': getPrice(listings.get('lowestPrice')),
+            'buyLink': getBuyLink(listings.get('prices'))
+        }
+
+        priceSerializer = RAMPriceSerializer(data=priceData)
+
+        if priceSerializer.is_valid():
+            priceSerializer.save()
+        
+        return Response(ramSerializer.data, status=status.HTTP_201_CREATED)
+
+
+class addCase(APIView):
+    def post(self, request):
+        data = request.data
+        listings = data.get('prices', {})
+        specs = data.get('specifications', {})
+        
+        caseData = {
+            'pcPartPickerId': data.get('id'),
+            'manufacturer': specs.get('Manufacturer'),
+            'name': getCaseName(data.get('name'), specs.get('Manufacturer')),
+            'type': getCaseType(specs.get('Type')),
+            'formFactor': getCaseFormFactor(specs.get('Type')),
+            'moboFormFactors': specs.get('Motherboard Form Factor'), #/////
+            'maxGPULength': getNumber(specs.get('Maximum Video Card Length')),
+            'expansionSlots': getCaseExpansionSlots(specs.get('Expansion Slots')), #////
+            'height': getCaseDimensions(specs.get('Dimensions'), 'height'),
+            'width': getCaseDimensions(specs.get('Dimensions'), 'width'),
+            'length': getCaseDimensions(specs.get('Dimensions'), 'length'),
+            'threePointFiveDriveBays': getCaseDriveBays(specs.get('Drive Bays'), '3.5'), #///
+            'twoPointFiveDriveBays': getCaseDriveBays(specs.get('Drive Bays'), '2.5'),#///
+            'includedPSU': getNumber(specs.get('Power Supply', 0)),
+        }
+
+        caseSerializer = CaseSerializer(data=caseData)
+
+        if caseSerializer.is_valid() != True:
+            return Response(caseSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        caseInstance = caseSerializer.save()
+
+        priceData = {
+            'CaseId': caseInstance.id,
+            'country': 'US',
+            'price': getPrice(listings.get('lowestPrice')),
+            'buyLink': getBuyLink(listings.get('prices'))
+        }
+
+        priceSerializer = CasePriceSerializer(data=priceData)
+
+        if priceSerializer.is_valid():
+            priceSerializer.save()
+        
+        return Response(caseSerializer.data, status=status.HTTP_201_CREATED)
