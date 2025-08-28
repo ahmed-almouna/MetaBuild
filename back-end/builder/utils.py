@@ -8,7 +8,7 @@ import math
 def getModel(name, type):
     if name is not None and type is not None:
         if type == "CPU":
-            match = re.search(r'\d{3,5}\w{0,3}', name) # e.g. 7800X3D
+            match = re.search(r'\d{3,5}\w{0,3}', name, re.IGNORECASE) # e.g. 7800X3D
         elif type == "GPU":
             match = re.search(r'(RTX|GTX|RX|ARC)\s(\w{3,4})(\s(ti super|ti|super|xtx|xt))?', name, re.IGNORECASE)
         if match:
@@ -52,15 +52,24 @@ def getBuyLink(listings):
     buyLink = None
     if listings is not None:
         for item in listings:
-            if item.get('availability') == 'In stock':
+            if item.get('availability').lower() == 'in stock':
                 buyLink = item.get('buyLink')
                 break
     return buyLink
 
-def getPrice(lowestPrice):
-    if lowestPrice is not None:
-        lowestPrice = math.ceil(lowestPrice)
-    return lowestPrice
+# def getPrice(lowestPrice):
+#     if lowestPrice is not None:
+#         lowestPrice = math.ceil(lowestPrice)
+#     return lowestPrice
+
+def getPrice(listings):
+    price = None
+    if listings is not None:
+        for item in listings:
+            if item.get('availability').lower() == 'in stock':
+                price = math.ceil(item.get('price'))
+                break
+    return price
 # ----------------------------------------------------
 
 
@@ -115,7 +124,7 @@ def getGPUBrand(name):
 def getStorageName(name, manufacturer): 
     if name is not None and manufacturer is not None:
         name = re.sub(re.escape(manufacturer), '', name, re.IGNORECASE)
-        match = re.search(r'(.+)\s(\S{1,5})\s(TB|GB)', name)
+        match = re.search(r'(.+)\s(\S{1,5})\s(TB|GB)', name, re.IGNORECASE)
         if match:
             name = match.group(1)
     return name
@@ -142,7 +151,7 @@ def getStorageSize(size):
 def getPSUName(name, manufacturer):
     if name is not None and manufacturer is not None:
         name = re.sub(re.escape(manufacturer), '', name, re.IGNORECASE)
-        match = re.search(r'(.+)\s(\d{3,4})\sW', name)
+        match = re.search(r'(.+)\s(\d{3,4})\sW', name, re.IGNORECASE)
         if match:
             name = match.group(1)
     return name
@@ -179,7 +188,7 @@ def getCoolerType(type):
 
 def getCoolerWidth(width):
     if width is not None:
-        match = re.search(r'(\d{3})(\smm)', width)
+        match = re.search(r'(\d{3})(\smm)', width, re.IGNORECASE)
         if match:
             width = int(match.group(1))
         else:
@@ -238,18 +247,24 @@ def getCaseType(type):
             type = match.group()
     return type
 
-def getCaseFormFactor(formFactor):
-    if formFactor is not None:
-        match = re.search(r'(Full Tower|Mid Tower|Mini Tower|Tower|Desktop)', formFactor, re.IGNORECASE)
+def getCaseFormFactor(type):
+    if type is not None:
+        match = re.search(r'(Full Tower|Mid Tower|Mini Tower|Tower|Desktop)', type, re.IGNORECASE)
         if match:
-            formFactor = match.group()
-    return formFactor
+            type = match.group()
+    return type
 
 def getCaseExpansionSlots(expansionSlots):
     if expansionSlots is not None:
-        match = re.search(r'(\d+)\s(x)\s(Full-Height)$', expansionSlots, re.IGNORECASE)
-        if match:
-            expansionSlots = int(match.group(1))
+        # if expansionSlots is a string instead of a list (i.e. the case has only one type of expansion slots), convert it to a list
+        if isinstance(expansionSlots, str):
+            expansionSlots = [expansionSlots]
+
+        for expansionSlotType in expansionSlots:
+            match = re.search(r'(\d+)\s(x)\s(Full-Height|Full-Height via Riser)$', expansionSlotType, re.IGNORECASE)
+            if match:
+                expansionSlots = int(match.group(1))
+                break
     return expansionSlots
 
 def getCaseDimensions(caseDimensions, wantedDimension): # dimensions' format is Length x Width x Height
@@ -259,14 +274,48 @@ def getCaseDimensions(caseDimensions, wantedDimension): # dimensions' format is 
             'width': 2,
             'height': 3
         }
-        match = re.search(r'(\d+)\smm\sx\s(\d+)\smm\sx\s(\d+)\smm', caseDimensions)
-        if match:
-            wantedDimension = int(match.group(wantedDimensionMap.get(wantedDimension.lower())))
+
+        if isinstance(caseDimensions, str):
+            caseDimensions = [caseDimensions]
+
+        for caseDimensionType in caseDimensions:
+            match = re.search(r'(\d+(?:[.]\d+)?)\smm\sx\s(\d+(?:[.]\d+)?)\smm\sx\s(\d+(?:[.]\d+)?)\smm', caseDimensionType, re.IGNORECASE)
+            if match:
+                wantedDimension = math.ceil(float(match.group(wantedDimensionMap.get(wantedDimension.lower()))))
+                break
     return wantedDimension
 
 def getCaseDriveBays(driveBays, wantedDriveBay):
+    numberOfDriveBays = 0
     if driveBays is not None and wantedDriveBay is not None:
-        match = re.search(r'(\d+)\s(x)\s(\d+)', driveBays, re.IGNORECASE)
+
+        if isinstance(driveBays, str):
+            driveBays = [driveBays]
+
+        for driveBayType in driveBays:
+            match = re.search(rf'(\d+)\s(x)\s(Internal)\s({wantedDriveBay})', driveBayType, re.IGNORECASE)
+            if match:
+                numberOfDriveBays = int(match.group(1))
+                break
+    return numberOfDriveBays
+
+def getCasePSUWattage(includedPSUWattage):
+    if includedPSUWattage is not None:
+        match = re.search(r'(\d+)\sW', includedPSUWattage, re.IGNORECASE)
         if match:
-            driveBays = int(match.group(1))
-    return driveBays
+            includedPSUWattage = int(match.group(1))
+        else:
+            includedPSUWattage = 0
+    return includedPSUWattage
+
+def getMaxGPULength(maxGPULength):
+    if maxGPULength is not None:
+        if isinstance(maxGPULength, str):
+            maxGPULength = [maxGPULength]
+
+        for maxGPULengthType in maxGPULength:
+            match = re.search(r'(\d+)\smm', maxGPULengthType)
+            if match:
+                maxGPULength = int(match.group(1))
+                break
+    return maxGPULength

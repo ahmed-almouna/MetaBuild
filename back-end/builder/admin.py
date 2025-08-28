@@ -19,4 +19,3 @@ admin.site.register(CoolerPrice)
 admin.site.register(RAMPrice)
 admin.site.register(CasePrice)
 
-

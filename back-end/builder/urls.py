@@ -2,7 +2,7 @@ from django.urls import path
 from rest_framework.urlpatterns import format_suffix_patterns
 from builder import views
 
-# URLs.
+# Site's URLs.
 
 urlpatterns = [
     path("build/", views.getBuild), # get a PC build
@@ -15,4 +15,5 @@ urlpatterns = [
     path("addCase/", views.addCase.as_view()),
 ]
 
-urlpatterns = format_suffix_patterns(urlpatterns)
+urlpatterns = format_suffix_patterns(urlpatterns) # allows the API to be accessed with different extensions e.g. 
+                                                  # MetaBuild/build.json, MetaBuild/build.api, etc.

@@ -1,5 +1,4 @@
 from django.shortcuts import render
-import math
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.generics import CreateAPIView
@@ -9,7 +8,7 @@ from .models import *
 from .serializers import *
 from .utils import *
 
-# Views i.e. API end-points.
+# Site's Views i.e. API end-points i.e. URLs.
 
 # Gives a PC build.
 @api_view(['GET'])
@@ -39,14 +38,46 @@ def getBuild(request, format=None):
     return Response(dummy_parts)
 
 
-# Adds a CPU to the database.
-class addCPU(APIView):
+# Abstract view for adding parts to the database
+class addPartView(APIView):
+    # Must be set in the child class
+    partSerializer = None
+    priceSerializer = None
+    partDataBuilder = None
+
     def post(self, request):
+        # Get the API request's data
         data = request.data
         listings = data.get('prices', {})
         specs = data.get('specifications', {})
-        
-        cpuData = {
+
+        # Create a part instance from the request and save it to the DB
+        partData = self.partDataBuilder(data, specs)
+        partSerializer = self.partSerializer(data=partData)
+        partSerializer.is_valid(raise_exception=True)
+        partInstance = partSerializer.save()
+
+        priceData = {
+            f'{partInstance.__class__.__name__}Id': partInstance.id, # get the name of the model dynamically
+            'country': 'US',
+            'price': getPrice(listings.get('prices')),
+            'buyLink': getBuyLink(listings.get('prices'))
+        }
+        priceSerializer = self.priceSerializer(data=priceData)
+        if priceSerializer.is_valid():
+            priceSerializer.save()
+
+        return Response(partSerializer.data, status=status.HTTP_201_CREATED)
+
+
+# Concrete view to add a CPU to the database.
+class addCPU(addPartView):
+    partSerializer = CPUSerializer
+    priceSerializer = CPUPriceSerializer
+
+    @staticmethod
+    def partDataBuilder(data, specs):
+        return {
             'pcPartPickerId': data.get('id'),
             'model': getModel(data.get('name'), type="CPU"),
             'brand': specs.get('Manufacturer'),
@@ -63,35 +94,14 @@ class addCPU(APIView):
             'integratedGPU': specs.get('Integrated Graphics', "None"),
         }
 
-        cpuSerializer = CPUSerializer(data=cpuData)
 
-        if cpuSerializer.is_valid() != True:
-            return Response(cpuSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        cpuInstance = cpuSerializer.save()
+class addGPU(addPartView):
+    partSerializer = GPUSerializer
+    priceSerializer = GPUPriceSerializer
 
-        priceData = {
-            'CPUId': cpuInstance.id,
-            'country': 'US',
-            'price': getPrice(listings.get('lowestPrice')),
-            'buyLink': getBuyLink(listings.get('prices'))
-        }
-
-        priceSerializer = CPUPriceSerializer(data=priceData)
-
-        if priceSerializer.is_valid():
-            priceSerializer.save()
-        
-        return Response(cpuSerializer.data, status=status.HTTP_201_CREATED)
-
-
-class addGPU(APIView):
-    def post(self, request):
-        data = request.data
-        listings = data.get('prices', {})
-        specs = data.get('specifications', {})
-        
-        gpuData = {
+    @staticmethod
+    def partDataBuilder(data, specs):
+        return {
             'pcPartPickerId': data.get('id'),
             'model': getModel(data.get('name'), type="GPU"),
             'brand': getGPUBrand(specs.get('Chipset')),
@@ -106,36 +116,15 @@ class addGPU(APIView):
             'expansionSlots': getNumber(specs.get('Total Slot Width')),
             'pciePowerConnectors': specs.get('External Power'),
         }
-
-        gpuSerializer = GPUSerializer(data=gpuData)
-
-        if gpuSerializer.is_valid() != True:
-            return Response(gpuSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        gpuInstance = gpuSerializer.save()
 
-        priceData = {
-            'GPUId': gpuInstance.id,
-            'country': 'US',
-            'price': getPrice(listings.get('lowestPrice')),
-            'buyLink': getBuyLink(listings.get('prices'))
-        }
+class addStorage(addPartView):
+    partSerializer = StorageSerializer
+    priceSerializer = StoragePriceSerializer
 
-        priceSerializer = GPUPriceSerializer(data=priceData)
-
-        if priceSerializer.is_valid():
-            priceSerializer.save()
-        
-        return Response(gpuSerializer.data, status=status.HTTP_201_CREATED)
-
-
-class addStorage(APIView):
-    def post(self, request):
-        data = request.data
-        listings = data.get('prices', {})
-        specs = data.get('specifications', {})
-        
-        storageData = {
+    @staticmethod
+    def partDataBuilder(data, specs):
+        return {
             'pcPartPickerId': data.get('id'),
             'manufacturer': specs.get('Manufacturer'),
             'name': getStorageName(data.get('name'), specs.get('Manufacturer')),
@@ -145,36 +134,15 @@ class addStorage(APIView):
             'cacheSize': getNumber(specs.get('Cache', 0)),
             'isNVMe': specs.get('NVME'),
         }
-
-        storageSerializer = StorageSerializer(data=storageData)
-
-        if storageSerializer.is_valid() != True:
-            return Response(storageSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        storageInstance = storageSerializer.save()
-
-        priceData = {
-            'StorageId': storageInstance.id,
-            'country': 'US',
-            'price': getPrice(listings.get('lowestPrice')),
-            'buyLink': getBuyLink(listings.get('prices'))
-        }
-
-        priceSerializer = StoragePriceSerializer(data=priceData)
-
-        if priceSerializer.is_valid():
-            priceSerializer.save()
-        
-        return Response(storageSerializer.data, status=status.HTTP_201_CREATED)
         
 
-class addPSU(APIView):
-    def post(self, request):
-        data = request.data
-        listings = data.get('prices', {})
-        specs = data.get('specifications', {})
-        
-        psuData = {
+class addPSU(addPartView):
+    partSerializer = PSUSerializer
+    priceSerializer = PSUPriceSerializer
+
+    @staticmethod
+    def partDataBuilder(data, specs):
+        return {
             'pcPartPickerId': data.get('id'),
             'manufacturer': specs.get('Manufacturer'),
             'name': getPSUName(data.get('name'), specs.get('Manufacturer')),
@@ -191,35 +159,14 @@ class addPSU(APIView):
             'sataConnectors': getNumber(specs.get('SATA Connectors')),
         }
 
-        psuSerializer = PSUSerializer(data=psuData)
 
-        if psuSerializer.is_valid() != True:
-            return Response(psuSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        psuInstance = psuSerializer.save()
+class addCooler(addPartView):
+    partSerializer = CoolerSerializer
+    priceSerializer = CoolerPriceSerializer
 
-        priceData = {
-            'PSUId': psuInstance.id,
-            'country': 'US',
-            'price': getPrice(listings.get('lowestPrice')),
-            'buyLink': getBuyLink(listings.get('prices'))
-        }
-
-        priceSerializer = PSUPriceSerializer(data=priceData)
-
-        if priceSerializer.is_valid():
-            priceSerializer.save()
-        
-        return Response(psuSerializer.data, status=status.HTTP_201_CREATED)
-
-
-class addCooler(APIView):
-    def post(self, request):
-        data = request.data
-        listings = data.get('prices', {})
-        specs = data.get('specifications', {})
-        
-        coolerData = {
+    @staticmethod
+    def partDataBuilder(data, specs):
+        return {
             'pcPartPickerId': data.get('id'),
             'manufacturer': specs.get('Manufacturer'),
             'name': getCoolerName(data.get('name'), specs.get('Model'), specs.get('Manufacturer')),
@@ -229,106 +176,43 @@ class addCooler(APIView):
             'width': getCoolerWidth(specs.get('Water Cooled', 0)),
         }
 
-        coolerSerializer = CoolerSerializer(data=coolerData)
 
-        if coolerSerializer.is_valid() != True:
-            return Response(coolerSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        coolerInstance = coolerSerializer.save()
+class addRAM(addPartView):
+    partSerializer = RAMSerializer
+    priceSerializer = RAMPriceSerializer
 
-        priceData = {
-            'CoolerId': coolerInstance.id,
-            'country': 'US',
-            'price': getPrice(listings.get('lowestPrice')),
-            'buyLink': getBuyLink(listings.get('prices'))
-        }
-
-        priceSerializer = CoolerPriceSerializer(data=priceData)
-
-        if priceSerializer.is_valid():
-            priceSerializer.save()
-        
-        return Response(coolerSerializer.data, status=status.HTTP_201_CREATED)
-
-
-class addRAM(APIView):
-    def post(self, request):
-        data = request.data
-        listings = data.get('prices', {})
-        specs = data.get('specifications', {})
-        
-        ramData = {
+    @staticmethod
+    def partDataBuilder(data, specs):
+        return {
             'pcPartPickerId': data.get('id'),
             'manufacturer': specs.get('Manufacturer'),
             'name': getRAMName(data.get('name'), specs.get('Manufacturer')),
             'count': getNumber(specs.get('Modules')),
             'size': getRAMSize(specs.get('Modules')),
             'type': getRAMType(specs.get('Speed')),
-            'speed': getRAMSpeed(specs.get('Speed', 0)),
+            'speed': getRAMSpeed(specs.get('Speed')),
         }
-
-        ramSerializer = RAMSerializer(data=ramData)
-
-        if ramSerializer.is_valid() != True:
-            return Response(ramSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        ramInstance = ramSerializer.save()
-
-        priceData = {
-            'RAMId': ramInstance.id,
-            'country': 'US',
-            'price': getPrice(listings.get('lowestPrice')),
-            'buyLink': getBuyLink(listings.get('prices'))
-        }
-
-        priceSerializer = RAMPriceSerializer(data=priceData)
-
-        if priceSerializer.is_valid():
-            priceSerializer.save()
-        
-        return Response(ramSerializer.data, status=status.HTTP_201_CREATED)
-
 
 class addCase(APIView):
-    def post(self, request):
-        data = request.data
-        listings = data.get('prices', {})
-        specs = data.get('specifications', {})
-        
-        caseData = {
+    partSerializer = CaseSerializer
+    priceSerializer = CasePriceSerializer
+
+    @staticmethod
+    def partDataBuilder(data, specs):
+        return {
             'pcPartPickerId': data.get('id'),
             'manufacturer': specs.get('Manufacturer'),
             'name': getCaseName(data.get('name'), specs.get('Manufacturer')),
             'type': getCaseType(specs.get('Type')),
             'formFactor': getCaseFormFactor(specs.get('Type')),
-            'moboFormFactors': specs.get('Motherboard Form Factor'), #/////
-            'maxGPULength': getNumber(specs.get('Maximum Video Card Length')),
-            'expansionSlots': getCaseExpansionSlots(specs.get('Expansion Slots')), #////
+            'moboFormFactors': specs.get('Motherboard Form Factor'), 
+            'maxGPULength': getMaxGPULength(specs.get('Maximum Video Card Length')),
+            'expansionSlots': getCaseExpansionSlots(specs.get('Expansion Slots')), 
             'height': getCaseDimensions(specs.get('Dimensions'), 'height'),
             'width': getCaseDimensions(specs.get('Dimensions'), 'width'),
             'length': getCaseDimensions(specs.get('Dimensions'), 'length'),
-            'threePointFiveDriveBays': getCaseDriveBays(specs.get('Drive Bays'), '3.5'), #///
-            'twoPointFiveDriveBays': getCaseDriveBays(specs.get('Drive Bays'), '2.5'),#///
-            'includedPSU': getNumber(specs.get('Power Supply', 0)),
+            'threePointFiveDriveBays': getCaseDriveBays(specs.get('Drive Bays', []), '3.5'), 
+            'twoPointFiveDriveBays': getCaseDriveBays(specs.get('Drive Bays', []), '2.5'),
+            'includedPSUWattage': getCasePSUWattage(specs.get('Power Supply', 0)),
         }
-
-        caseSerializer = CaseSerializer(data=caseData)
-
-        if caseSerializer.is_valid() != True:
-            return Response(caseSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        caseInstance = caseSerializer.save()
-
-        priceData = {
-            'CaseId': caseInstance.id,
-            'country': 'US',
-            'price': getPrice(listings.get('lowestPrice')),
-            'buyLink': getBuyLink(listings.get('prices'))
-        }
-
-        priceSerializer = CasePriceSerializer(data=priceData)
-
-        if priceSerializer.is_valid():
-            priceSerializer.save()
-        
-        return Response(caseSerializer.data, status=status.HTTP_201_CREATED)
