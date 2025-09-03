@@ -1,6 +1,6 @@
 from django.urls import path
 from rest_framework.urlpatterns import format_suffix_patterns
-from pcbuilder_app import views
+from pcbuilder import views
 
 # Site's URLs.
 
