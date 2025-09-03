@@ -1,11 +1,11 @@
 from django.urls import path
 from rest_framework.urlpatterns import format_suffix_patterns
-from pcbuilder import views
+from . import views
 
-# Site's URLs.
+# Apps's URLs.
 
 urlpatterns = [
-    path("build/", views.getBuild), # get a PC build
+    path("build/", views.getBuild),                 # get a PC build
     path("addCPU/", views.addCPU.as_view()),
     path("addGPU/", views.addGPU.as_view()),
     path("addStorage/", views.addStorage.as_view()),

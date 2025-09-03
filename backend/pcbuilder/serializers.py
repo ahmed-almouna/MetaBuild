@@ -1,16 +1,16 @@
 from rest_framework import serializers
-from .models import *
+from . import models
 
 # Serializers.
 
 class CPUSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CPU
+        model = models.CPU
         fields = '__all__'
 
 class CPUPriceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CPUPrice
+        model = models.CPUPrice
         fields = '__all__'
 
 class GPUSerializer(serializers.ModelSerializer):
@@ -25,50 +25,50 @@ class GPUPriceSerializer(serializers.ModelSerializer):
 
 class StorageSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Storage
+        model = models.Storage
         fields = '__all__'
 
 class StoragePriceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = StoragePrice
+        model = models.StoragePrice
         fields = '__all__'
 
 class PSUSerializer(serializers.ModelSerializer):
     class Meta:
-        model = PSU
+        model = models.PSU
         fields = '__all__'
 
 class PSUPriceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = PSUPrice
+        model = models.PSUPrice
         fields = '__all__'
 
 class CoolerSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Cooler
+        model = models.Cooler
         fields = '__all__'
 
 class CoolerPriceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CoolerPrice
+        model = models.CoolerPrice
         fields = '__all__'
 
 class RAMSerializer(serializers.ModelSerializer):
     class Meta:
-        model = RAM
+        model = models.RAM
         fields = '__all__'
 
 class RAMPriceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = RAMPrice
+        model = models.RAMPrice
         fields = '__all__'
 
 class CaseSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Case
+        model = models.Case
         fields = '__all__'
 
 class CasePriceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CasePrice
+        model = models.CasePrice
         fields = '__all__'

@@ -1,21 +1,20 @@
 from django.contrib import admin
-from .models import *
+from . import models
 
 # Admin registered models.
 
-admin.site.register(CPU)
-admin.site.register(GPU)
-admin.site.register(Mobo)
-admin.site.register(RAM)
-admin.site.register(Cooler)
-admin.site.register(PSU)
-admin.site.register(Case)
-admin.site.register(Storage)
-admin.site.register(CPUPrice)
-admin.site.register(GPUPrice)
-admin.site.register(StoragePrice)
-admin.site.register(PSUPrice)
-admin.site.register(CoolerPrice)
-admin.site.register(RAMPrice)
-admin.site.register(CasePrice)
-
+admin.site.register(models.CPU)
+admin.site.register(models.GPU)
+admin.site.register(models.Mobo)
+admin.site.register(models.RAM)
+admin.site.register(models.Cooler)
+admin.site.register(models.PSU)
+admin.site.register(models.Case)
+admin.site.register(models.Storage)
+admin.site.register(models.CPUPrice)
+admin.site.register(models.GPUPrice)
+admin.site.register(models.StoragePrice)
+admin.site.register(models.PSUPrice)
+admin.site.register(models.CoolerPrice)
+admin.site.register(models.RAMPrice)
+admin.site.register(models.CasePrice)

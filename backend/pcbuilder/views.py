@@ -1,12 +1,9 @@
-from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.generics import CreateAPIView
 from rest_framework.views import APIView
 from rest_framework import status
-from .models import *
-from .serializers import *
-from .utils import *
+from . import serializers
+from .create_helpers import *
 
 # Site's Views i.e. API end-points i.e. URLs.
 
@@ -72,8 +69,8 @@ class addPartView(APIView):
 
 # Concrete view to add a CPU to the database.
 class addCPU(addPartView):
-    partSerializer = CPUSerializer
-    priceSerializer = CPUPriceSerializer
+    partSerializer = serializers.CPUSerializer
+    priceSerializer = serializers.CPUPriceSerializer
 
     @staticmethod
     def partDataBuilder(data, specs):
@@ -96,8 +93,8 @@ class addCPU(addPartView):
 
 
 class addGPU(addPartView):
-    partSerializer = GPUSerializer
-    priceSerializer = GPUPriceSerializer
+    partSerializer = serializers.GPUSerializer
+    priceSerializer = serializers.GPUPriceSerializer
 
     @staticmethod
     def partDataBuilder(data, specs):
@@ -119,8 +116,8 @@ class addGPU(addPartView):
         
 
 class addStorage(addPartView):
-    partSerializer = StorageSerializer
-    priceSerializer = StoragePriceSerializer
+    partSerializer = serializers.StorageSerializer
+    priceSerializer = serializers.StoragePriceSerializer
 
     @staticmethod
     def partDataBuilder(data, specs):
@@ -137,8 +134,8 @@ class addStorage(addPartView):
         
 
 class addPSU(addPartView):
-    partSerializer = PSUSerializer
-    priceSerializer = PSUPriceSerializer
+    partSerializer = serializers.PSUSerializer
+    priceSerializer = serializers.PSUPriceSerializer
 
     @staticmethod
     def partDataBuilder(data, specs):
@@ -161,8 +158,8 @@ class addPSU(addPartView):
 
 
 class addCooler(addPartView):
-    partSerializer = CoolerSerializer
-    priceSerializer = CoolerPriceSerializer
+    partSerializer = serializers.CoolerSerializer
+    priceSerializer = serializers.CoolerPriceSerializer
 
     @staticmethod
     def partDataBuilder(data, specs):
@@ -178,8 +175,8 @@ class addCooler(addPartView):
 
 
 class addRAM(addPartView):
-    partSerializer = RAMSerializer
-    priceSerializer = RAMPriceSerializer
+    partSerializer = serializers.RAMSerializer
+    priceSerializer = serializers.RAMPriceSerializer
 
     @staticmethod
     def partDataBuilder(data, specs):
@@ -195,8 +192,8 @@ class addRAM(addPartView):
         
 
 class addCase(APIView):
-    partSerializer = CaseSerializer
-    priceSerializer = CasePriceSerializer
+    partSerializer = serializers.CaseSerializer
+    priceSerializer = serializers.CasePriceSerializer
 
     @staticmethod
     def partDataBuilder(data, specs):

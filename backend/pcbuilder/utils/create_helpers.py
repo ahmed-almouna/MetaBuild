@@ -1,58 +1,13 @@
-import re
 import math
+from .regex import *
+from .utils import *
 
-# This file has helper methods to get the data from a (PCPartPicker) request to match our DB structure.
-# all methods generally return the found match (in an appropriate data type for the DB) or None otherwise.
-#Note if you can get get price and getbuylink in 1 function
+# This file contains functions to convert the data in a (PCPartPicker) request to match our DB structure.
+# Specifically, these functions are used by API views that add new parts to the parts db.
+# All functions generally return the data found (in the appropriate structure and type for the db) or None otherwise.
+# Note try if you can get getPrice and getbuylink in 1 function
 
-# Regex patterns
-cpuModelPattern = re.compile(r'\d{3,5}\w{0,3}', re.IGNORECASE) # e.g. 7800X3D, 245K, 14700
-gpuModelPrefixPattern = re.compile(r'(RTX|GTX|RX|Arc)', re.IGNORECASE)
-gpuModelPattern = re.compile(rf'({gpuModelPrefixPattern.pattern})\s(\w{4})(\s(Ti SUPER|Ti|SUPER|XTX|XT))?', 
-re.IGNORECASE) # e.g. RTX 4060 Ti SUPER, RX 6600
-numberPattern = re.compile(r'\d+')
-decimalNumberPattern = re.compile(r'\d+([.]\d+)?')
-gpuNamePattern = re.compile(r'(.+?)(GeForce|Radeon|Arc)', re.IGNORECASE) # e.g. SHADOW 3X OC GeForce 
-storageNamePattern = re.compile(rf'(.+?)({decimalNumberPattern.pattern})\s(TB|GB)', re.IGNORECASE) # e.g. Caviar Blue 
-                                                                                                   # 4.096 TB
-storageFormFactorPattern = re.compile(r'(3.5|2.5|M.2|PCIe)', re.IGNORECASE)
-storageSizePattern = re.compile(rf'({decimalNumberPattern.pattern})\s(TB)', re.IGNORECASE)
-casePSUWattagePattern = re.compile(rf'({numberPattern.pattern})\s(W)', re.IGNORECASE)
-psuPowerPattern = re.compile(rf'(.+?)({casePSUWattagePattern.pattern})', re.IGNORECASE)
-psuEfficiencyPattern = re.compile(r'(80[+])\s(Bronze|Silver|Gold|Platinum|Diamond)', re.IGNORECASE)
-coolerNamePattern = re.compile(rf'(.+?)({decimalNumberPattern.pattern})\s(CFM)', re.IGNORECASE)
-coolerTypePattern = re.compile(r'(Yes|No)', re.IGNORECASE)
-coolerWidthPattern = re.compile(rf'({numberPattern.pattern})\s(mm)', re.IGNORECASE)
-ramNamePattern = re.compile(rf'(.+?)({numberPattern.pattern})\s(GB)', re.IGNORECASE)
-ramModulePattern = re.compile(rf'({numberPattern.pattern})\s(x)\s({numberPattern.pattern})(GB)', re.IGNORECASE)
-ramTypePattern = re.compile(r'(DDR2|DDR3|DDR4|DDR5|DDR)', re.IGNORECASE)
-ramSpeedPattern = re.compile(rf'({ramTypePattern.pattern})(-)({numberPattern.pattern})', re.IGNORECASE)
-caseNamePattern = re.compile(r'(.+?)(MicroATX|ATX|Mini ITX)', re.IGNORECASE)
-caseFormFactorPattern = re.compile(r'(Full Tower|Mid Tower|Mini Tower|Tower|Desktop)', re.IGNORECASE)
-caseExpansionSlotPattern = re.compile(rf'({numberPattern.pattern})\s(x)\s(Full-Height|Full-Height via Riser)', re.IGNORECASE)
-caseDimensionsPattern = re.compile(rf'({decimalNumberPattern.pattern})\smm\sx\s'
-    rf'({decimalNumberPattern.pattern})\smm\sx\s'
-    rf'({decimalNumberPattern.pattern})\smm', re.IGNORECASE)
-caseDriveBayPattern = re.compile(rf'({numberPattern.pattern})\s(x)\s(Internal)\s({wantedDriveBay})', re.IGNORECASE)
-caseMaxGPULengthPattern = re.compile(rf'{coolerWidthPattern.pattern}', re.IGNORECASE)
-
-
-
-
-# General functions ----------------------------------------------------
-# Abstract function to extract a pattern from a string
-# takes the string to search in, the regex pattern to use, and the group to extract
-# the default group=0 gets the entire match; otherwise specify which bracket you want
-def extractPattern(value, pattern, group=0, cast=None):
-    if value is None or pattern is None:
-        return None
-
-    result = None
-    if match := re.search(pattern, str(value)): # *note the walrus operator
-        result = match.group(group)
-        
-    return result
-
+#  General (not specific to any part) ----------------------------
 def getModel(name, part):
     if name is None or part is None:
         return None
@@ -73,34 +28,6 @@ def getGeneration(name, part):
     model = getNumber(model) # e.g. get number only e.g. 12400 from 12400K
     generation = roundToNearest(model)
     return generation
-
-# Generic function to get numbers that don't require fancy conversions. e.g. 170W, 16 GB, etc. (Note: might be 
-# replaced by getDecimalNumer)
-def getNumber(numberString): 
-    if numberString is None: 
-        return None
-
-    if number := extractPattern(numberString, numberPattern):
-        number = int(number) # convert to int type
-    return number
-
-# The same as getNumber() but accepts decimal numbers e.g. 170.5W
-def getDecimalNumber(numberString):
-    if numberString is None:
-        return None
-        
-    if decimalNumber := extractPattern(numberString, decimalNumberPattern):
-        decimalNumber = float(decimalNumber)
-    return decimalNumber
-
-# Rounds to nearest 100 if number is 999 or below, rounds to nearest 1000 if number is 1000 to 99999.
-def roundToNearest(number): 
-    if number is None:
-        return None
-
-    if len(str(number)) > 3:
-        return number // 1000 * 1000
-    return number // 100 * 100
 
 def getBuyLink(listings):
     if listings is None:
@@ -125,7 +52,6 @@ def getPrice(listings):
             break
     return price
 # ----------------------------------------------------
-
 
 
 # CPU specific --------------------------------------
@@ -158,7 +84,6 @@ def getCPUCacheSize(L2Cache, L3Cache):
 # ----------------------------------------------------
 
 
-
 # GPU specific ---------------------------------------
 def getGPUName(name, manufacturer): 
     if name is None or manufacturer is None:
@@ -184,7 +109,6 @@ def getGPUBrand(name):
         
     return brand
 # ----------------------------------------------------
-
 
 
 # Storage specific --------------------------------------
@@ -216,7 +140,6 @@ def getStorageSize(sizeString):
 # ----------------------------------------------------
 
 
-
 # PSU specific --------------------------------------
 def getPSUName(name, manufacturer):
     if name is None or manufacturer is None:
@@ -236,7 +159,6 @@ def getPSUEfficiency(efficiency):
         efficiency = '80+'
     return efficiency
 # ----------------------------------------------------
-
 
 
 # Cooler specific --------------------------------------
@@ -286,7 +208,6 @@ def getCoolerWidth(type): # type contains the width of liquid coolers i.e. "Yes 
 # ----------------------------------------------------
 
 
-
 # RAM specific --------------------------------------
 def getRAMName(name, manufacturer):
     if name is None or manufacturer is None:
@@ -326,7 +247,6 @@ def getRAMSpeed(speed):
 # ----------------------------------------------------
 
 
-
 # Case specific --------------------------------------
 def getCaseName(name, manufacturer):
     if name is None or manufacturer is None:
@@ -357,7 +277,6 @@ def getCaseExpansionSlots(expansionSlots):
     # convert it to a list
     if isinstance(expansionSlots, str):
         expansionSlots = [expansionSlots]
-
 
     regularExpansionSlots = 0
     expansionSlotsViaRiser = 0
@@ -430,3 +349,4 @@ def getMaxGPULength(maxGPULength):
             maxGPULengthInt = int(match.group(1))
             break
     return maxGPULengthInt
+# ------------------------------------------------------
