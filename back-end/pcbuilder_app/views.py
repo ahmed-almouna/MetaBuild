@@ -79,10 +79,10 @@ class addCPU(addPartView):
     def partDataBuilder(data, specs):
         return {
             'pcPartPickerId': data.get('id'),
-            'model': getModel(data.get('name'), type="CPU"),
+            'model': getModel(data.get('name'), "CPU"),
             'brand': specs.get('Manufacturer'),
-            'series': getCPUSeries(specs.get('Series')),
-            'generation': getGeneration(data.get('name'), type="CPU"),
+            'series': getCPUSeries(specs.get('Series'), specs.get('Manufacturer')),
+            'generation': getGeneration(data.get('name'), "CPU"),
             'socket': specs.get('Socket'),
             'architecture': specs.get('Microarchitecture'),
             'coreCount': specs.get('Core Count'),
@@ -103,11 +103,11 @@ class addGPU(addPartView):
     def partDataBuilder(data, specs):
         return {
             'pcPartPickerId': data.get('id'),
-            'model': getModel(data.get('name'), type="GPU"),
+            'model': getModel(data.get('name'), "GPU"),
             'brand': getGPUBrand(specs.get('Chipset')),
             'manufacturer': specs.get('Manufacturer'),
-            'name': getGPUName(data.get('name')),
-            'series': getGeneration(data.get('name'), type="GPU"),
+            'name': getGPUName(data.get('name'), specs.get('Manufacturer')),
+            'series': getGeneration(data.get('name'), "GPU"),
             'boostClock': getNumber(specs.get('Boost Clock')),
             'tdp': getNumber(specs.get('TDP')),
             'vramSize': getNumber(specs.get('Memory')),
@@ -131,7 +131,7 @@ class addStorage(addPartView):
             'size': getStorageSize(specs.get('Capacity')),
             'isSSD': specs.get('Type') == 'SSD',
             'formFactor': getStorageFormFactor(specs.get('Form Factor')),
-            'cacheSize': getNumber(specs.get('Cache', 0)),
+            'cacheSize': getNumber(specs.get('Cache', "0")), # set it to 0 if not specified
             'isNVMe': specs.get('NVME'),
         }
         
@@ -171,9 +171,9 @@ class addCooler(addPartView):
             'manufacturer': specs.get('Manufacturer'),
             'name': getCoolerName(data.get('name'), specs.get('Model'), specs.get('Manufacturer')),
             'supportedSockets': specs.get('CPU Socket'),
-            'isLiquid': getCoolerType(specs.get('Water Cooled')),
-            'height': getNumber(specs.get('Height', 0)),
-            'width': getCoolerWidth(specs.get('Water Cooled', 0)),
+            'isLiquid': isLiquidCooler(specs.get('Water Cooled')),
+            'height': getNumber(specs.get('Height', "0")),
+            'width': getCoolerWidth(specs.get('Water Cooled', "0")),#////
         }
 
 
@@ -187,9 +187,9 @@ class addRAM(addPartView):
             'pcPartPickerId': data.get('id'),
             'manufacturer': specs.get('Manufacturer'),
             'name': getRAMName(data.get('name'), specs.get('Manufacturer')),
-            'count': getNumber(specs.get('Modules')),
-            'size': getRAMSize(specs.get('Modules')),
-            'type': getRAMType(specs.get('Speed')),
+            'count': getRAMModule(specs.get('Modules'), 'COUNT'),
+            'size': getRAMModule(specs.get('Modules'), 'SIZE'),
+            'type': getRAMType(specs.get('Speed')), # spped also contains type i.e. "DDR5-6000"
             'speed': getRAMSpeed(specs.get('Speed')),
         }
         
@@ -200,6 +200,7 @@ class addCase(APIView):
 
     @staticmethod
     def partDataBuilder(data, specs):
+        expansionSlots, expansionSlotsViaRiser = getCaseExpansionSlots(specs.get('Expansion Slots'))
         return {
             'pcPartPickerId': data.get('id'),
             'manufacturer': specs.get('Manufacturer'),
@@ -208,11 +209,12 @@ class addCase(APIView):
             'formFactor': getCaseFormFactor(specs.get('Type')),
             'moboFormFactors': specs.get('Motherboard Form Factor'), 
             'maxGPULength': getMaxGPULength(specs.get('Maximum Video Card Length')),
-            'expansionSlots': getCaseExpansionSlots(specs.get('Expansion Slots')), 
+            'expansionSlots': expansionSlots, 
+            'expansionSlotsViaRiser': expansionSlotsViaRiser, 
             'height': getCaseDimensions(specs.get('Dimensions'), 'height'),
             'width': getCaseDimensions(specs.get('Dimensions'), 'width'),
             'length': getCaseDimensions(specs.get('Dimensions'), 'length'),
             'threePointFiveDriveBays': getCaseDriveBays(specs.get('Drive Bays', []), '3.5'), 
             'twoPointFiveDriveBays': getCaseDriveBays(specs.get('Drive Bays', []), '2.5'),
-            'includedPSUWattage': getCasePSUWattage(specs.get('Power Supply', 0)),
+            'includedPSUWattage': getCasePSUWattage(specs.get('Power Supply', "0")),#////////
         }

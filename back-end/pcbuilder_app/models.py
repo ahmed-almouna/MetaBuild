@@ -134,8 +134,8 @@ class Cooler(models.Model):
     name = models.CharField(max_length=genericMaxLength) 
     supportedSockets = ArrayField(models.CharField(max_length=genericMaxLength))
     isLiquid = models.BooleanField()
-    height = models.PositiveIntegerField()                                      # in mm
-    width = models.PositiveIntegerField()                                       # only for water coolers
+    height = models.PositiveIntegerField()                                      # in mm, mostly for air coolers
+    width = models.PositiveIntegerField()                                       # only for liquid coolers
     rating = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
@@ -231,17 +231,18 @@ class Case(models.Model):
     pcPartPickerId = models.CharField(max_length=genericMaxLength, unique=True)
     manufacturer = models.CharField(max_length=genericMaxLength)
     name = models.CharField(max_length=genericMaxLength, unique=True)
-    type = models.CharField(max_length=genericMaxLength)                        # e.g. ATX, micro ATX, mini ITX
-    formFactor = models.CharField(max_length=genericMaxLength)                  # e.g. full tower, mid tower, mini tower
+    type = models.CharField(max_length=genericMaxLength)                   # e.g. ATX, micro ATX, mini ITX
+    formFactor = models.CharField(max_length=genericMaxLength)             # e.g. full tower, mid tower, mini tower
     moboFormFactors = ArrayField(models.CharField(max_length=genericMaxLength)) # supported mobo form factors
     maxGPULength = models.PositiveIntegerField()
     expansionSlots = models.PositiveIntegerField()
-    height = models.PositiveIntegerField()                 # how tall when the case is placed in its correct orientation
-    width = models.PositiveIntegerField()                                   # the shorter side of the 2 other dimensions
-    length = models.PositiveIntegerField()                                  # the longer side of the 2 other dimensions
+    expansionSlotsViaRiser = models.PositiveIntegerField()
+    height = models.PositiveIntegerField()                # how tall when the case is placed in its correct orientation
+    width = models.PositiveIntegerField()                                  # the shorter side of the 2 other dimensions
+    length = models.PositiveIntegerField()                                 # the longer side of the 2 other dimensions
     threePointFiveDriveBays = models.PositiveIntegerField()
     twoPointFiveDriveBays = models.PositiveIntegerField()
-    includedPSUWattage = models.PositiveIntegerField()                          # wattage of included PSU or none
+    includedPSUWattage = models.PositiveIntegerField()                     # wattage of included PSU or none
 
     def __str__(self):
         return f"{self.name}"

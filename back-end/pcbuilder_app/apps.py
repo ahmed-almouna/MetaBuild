@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
-class BuilderConfig(AppConfig):
+class PCBuilderAppConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'builder'
+    name = 'pcbuilder_app'
