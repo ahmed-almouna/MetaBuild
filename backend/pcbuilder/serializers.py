@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from . import models
 
-# Serializers.
+# This file contains the serializers for the models.
 
 class CPUSerializer(serializers.ModelSerializer):
     class Meta:
@@ -15,12 +15,12 @@ class CPUPriceSerializer(serializers.ModelSerializer):
 
 class GPUSerializer(serializers.ModelSerializer):
     class Meta:
-        model = GPU
+        model = models.GPU
         fields = '__all__'
 
 class GPUPriceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = GPUPrice
+        model = models.GPUPrice
         fields = '__all__'
 
 class StorageSerializer(serializers.ModelSerializer):

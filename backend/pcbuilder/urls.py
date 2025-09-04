@@ -2,18 +2,18 @@ from django.urls import path
 from rest_framework.urlpatterns import format_suffix_patterns
 from . import views
 
-# Apps's URLs.
+# This file contains the app's URLs.
 
 urlpatterns = [
-    path("build/", views.getBuild),                 # get a PC build
-    path("addCPU/", views.addCPU.as_view()),
-    path("addGPU/", views.addGPU.as_view()),
-    path("addStorage/", views.addStorage.as_view()),
-    path("addPSU/", views.addPSU.as_view()),
-    path("addCooler/", views.addCooler.as_view()),
-    path("addRAM/", views.addRAM.as_view()),
-    path("addCase/", views.addCase.as_view()),
+    path("build/", views.getBuild),          # get a PC build
+    path("addcpu/", views.AddCPU.as_view()), # add a CPU to the db
+    path("addgpu/", views.AddGPU.as_view()),
+    path("addstorage/", views.AddStorage.as_view()),
+    path("addpsu/", views.AddPSU.as_view()),
+    path("addcooler/", views.AddCooler.as_view()),
+    path("addram/", views.AddRAM.as_view()),
+    path("addcase/", views.AddCase.as_view()),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns) # allows the API to be accessed with different extensions e.g. 
-                                                  # MetaBuild/build.json, MetaBuild/build.api, etc.
+    # metabuild.com/build.json, metabuild.com/build.api, etc.
