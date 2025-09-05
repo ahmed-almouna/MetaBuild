@@ -49,7 +49,7 @@ def getCPUSeries(series, manufacturer):
     if series is None or manufacturer is None:
         return None
     
-    series = re.sub(re.escape(manufacturer), '', series, re.IGNORECASE) # escape to not treat any chrachter as regex
+    series = re.sub(re.escape(str(manufacturer)), '', str(series), re.IGNORECASE) # escape to not treat any chrachter as regex
     return series
 
 def getCPUSpeed(speedInGHz): # converts GHz to MHz e.g. 5.7 GHz to 5700
@@ -79,7 +79,7 @@ def getGPUName(name, manufacturer):
     if name is None or manufacturer is None:
         return None
 
-    name = re.sub(re.escape(manufacturer), '', name, re.IGNORECASE)
+    name = re.sub(re.escape(str(manufacturer)), '', str(name), re.IGNORECASE)
     name = extractPattern(name, gpuNamePattern, 1)
     return name
 
@@ -103,7 +103,7 @@ def getGPUPCIePowerConnectors(pciePowerConnectors):
     if pciePowerConnectors is None:
         return None
     
-    pciePowerConnectors = re.sub(('PCIe '), '', pciePowerConnectors, re.IGNORECASE)
+    pciePowerConnectors = re.sub(('PCIe '), '', str(pciePowerConnectors), re.IGNORECASE)
     return pciePowerConnectors
 # ----------------------------------------------------
 
@@ -113,7 +113,7 @@ def getStorageName(name, manufacturer):
     if name is None or manufacturer is None:
         return None
 
-    name = re.sub(re.escape(manufacturer), '', name, re.IGNORECASE)
+    name = re.sub(re.escape(str(manufacturer)), '', str(name), re.IGNORECASE)
     name = extractPattern(name, storageNamePattern, 1)
     return name
 
@@ -142,7 +142,7 @@ def getPSUName(name, manufacturer):
     if name is None or manufacturer is None:
         return None
 
-    name = re.sub(re.escape(manufacturer), '', name, re.IGNORECASE)
+    name = re.sub(re.escape(str(manufacturer)), '', str(name), re.IGNORECASE)
     name = extractPattern(name, psuNamePattern, 1)
     return name
 
@@ -165,7 +165,7 @@ def getCoolerName(name, model, manufacturer):
     elif name is None or manufacturer is None:
         return None
     else:
-        name = re.sub(re.escape(manufacturer), '', name, re.IGNORECASE)
+        name = re.sub(re.escape(str(manufacturer)), '', str(name), re.IGNORECASE)
         name = extractPattern(name, coolerNamePattern, 1)
 
     return name
@@ -214,7 +214,7 @@ def getRAMName(name, manufacturer):
     if name is None or manufacturer is None:
         return None
 
-    name = re.sub(re.escape(manufacturer), '', name, re.IGNORECASE)
+    name = re.sub(re.escape(str(manufacturer)), '', str(name), re.IGNORECASE)
     name = extractPattern(name, ramNamePattern, 1)
     return name
 
@@ -253,7 +253,7 @@ def getCaseName(name, manufacturer):
     if name is None or manufacturer is None:
         return None
 
-    name = re.sub(re.escape(manufacturer), '', name, re.IGNORECASE)
+    name = re.sub(re.escape(str(manufacturer)), '', str(name), re.IGNORECASE)
     name = extractPattern(name, caseNamePattern, 1)
     return name
 

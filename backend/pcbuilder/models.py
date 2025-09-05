@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.db.models.constraints import UniqueConstraint
 
-#NOTE: you might want to have all the price tables belon to a abstract table to avoid duplication.
 # limit options for countries
 
 # This file contains the db's models.
@@ -11,33 +10,38 @@ from django.db.models.constraints import UniqueConstraint
 kGenericMaxLength = 100
 kLongMaxLength    = 500 # for generic string that might be bigger than 100 characters long e.g. links
 
+# Abstract model for price tables
+class PartPrice(models.Model):
+    country = models.CharField(max_length=kGenericMaxLength)
+    price = models.PositiveIntegerField()
+    buyLink = models.URLField(max_length=kLongMaxLength)
+
+    class Meta:
+        abstract = True
 
 class CPU(models.Model):
     pcPartPickerId = models.CharField(max_length=kGenericMaxLength, unique=True)
     brand          = models.CharField(max_length=kGenericMaxLength)              # e.g. AMD
     series         = models.CharField(max_length=kGenericMaxLength)              # e.g. Ryzen 5
     model          = models.CharField(max_length=kGenericMaxLength, unique=True) # e.g. 7800X
-    generation     = models.PositiveIntegerField()                              # e.g. 7000
+    generation     = models.PositiveIntegerField()                               # e.g. 7000
     architecture   = models.CharField(max_length=kGenericMaxLength)              # e.g. Zen 5
     socket         = models.CharField(max_length=kGenericMaxLength)
-    coreCount      = models.PositiveIntegerField()                              # effeciency cores + performance cores
+    coreCount      = models.PositiveIntegerField()                               # effeciency cores + performance cores
     threadCount    = models.PositiveIntegerField()
     boostClock     = models.PositiveIntegerField()
-    cacheSize      = models.PositiveIntegerField()                              # L2 + L3
-    tdp            = models.PositiveIntegerField()                              # i.e. wattage
+    cacheSize      = models.PositiveIntegerField()                               # L2 + L3
+    tdp            = models.PositiveIntegerField()                               # i.e. wattage
     integratedGPU  = models.CharField(max_length=kGenericMaxLength)              # can be specific model or none
     coolerIncluded = models.BooleanField()
-    rating         = models.PositiveIntegerField(null=True, blank=True)         # personal rating
+    rating         = models.PositiveIntegerField(null=True, blank=True)          # personal rating
 
     def __str__(self):
         return f"{self.model}"
 
-# Used to store the price of CPUs (each CPU has multiple prices 1 in each country)
-class CPUPrice(models.Model):
+# Used to store the price of CPUs, each CPU has multiple prices - 1 in each country ideally
+class CPUPrice(PartPrice):
     CPUId = models.ForeignKey(CPU, on_delete=models.CASCADE)
-    country = models.CharField(max_length=kGenericMaxLength)
-    price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=kLongMaxLength)
 
     class Meta:
         constraints = [
@@ -58,7 +62,7 @@ class GPU(models.Model):
     vramSize            = models.PositiveIntegerField()
     vramType            = models.CharField(max_length=kGenericMaxLength)
     boostClock          = models.PositiveIntegerField()
-    length              = models.PositiveIntegerField()                              # in mm
+    length              = models.PositiveIntegerField()                               # in mm
     expansionSlots      = models.PositiveIntegerField()
     pciePowerConnectors = models.CharField(max_length=kGenericMaxLength)# eg 1 x 8-pin + 1 x 6-pin, can also be None
     tdp                 = models.PositiveIntegerField()
@@ -67,18 +71,15 @@ class GPU(models.Model):
     def __str__(self):
         return f"{self.model}"
 
-class GPUPrice(models.Model):
+class GPUPrice(PartPrice):
     GPUId = models.ForeignKey(GPU, on_delete=models.CASCADE)
-    country = models.CharField(max_length=kGenericMaxLength)
-    price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=kLongMaxLength)
 
     class Meta:
         constraints = [
             UniqueConstraint(fields=['GPUId', 'country'], name='unique_gpu_country_price')
         ]
     def __str__(self):
-        return f"{self.GPUId.model} ({self.country})"
+        return f"{self.GPUId} ({self.country})"
 
 
 
@@ -115,11 +116,8 @@ class RAM(models.Model):
     def __str__(self):
         return f"{self.name} {self.count} x {self.size}"
 
-class RAMPrice(models.Model):
+class RAMPrice(PartPrice):
     RAMId = models.ForeignKey(RAM, on_delete=models.CASCADE)
-    country = models.CharField(max_length=kGenericMaxLength)
-    price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=kLongMaxLength)
 
     class Meta:
         constraints = [
@@ -148,11 +146,8 @@ class Cooler(models.Model):
     def __str__(self):
         return f"{self.name}"
 
-class CoolerPrice(models.Model):
+class CoolerPrice(PartPrice):
     CoolerId = models.ForeignKey(Cooler, on_delete=models.CASCADE)
-    country = models.CharField(max_length=kGenericMaxLength)
-    price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=kLongMaxLength)
 
     class Meta:
         constraints = [
@@ -166,7 +161,7 @@ class CoolerPrice(models.Model):
 class PSU(models.Model):
     pcPartPickerId         = models.CharField(max_length=kGenericMaxLength, unique=True)
     manufacturer           = models.CharField(max_length=kGenericMaxLength)
-    name                   = models.CharField(max_length=kGenericMaxLength, unique=True)
+    name                   = models.CharField(max_length=kGenericMaxLength)
     wattage                = models.PositiveIntegerField()
     isModular              = models.BooleanField()
     efficiency             = models.CharField(max_length=kGenericMaxLength)
@@ -179,14 +174,15 @@ class PSU(models.Model):
     gpu6PinConnectors      = models.PositiveIntegerField()
     sataConnectors         = models.PositiveIntegerField()
 
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name', 'wattage'], name='unique_psu_name_wattage')
+        ]
     def __str__(self):
         return f"{self.name} {self.wattage}W"
 
-class PSUPrice(models.Model):
+class PSUPrice(PartPrice):
     PSUId = models.ForeignKey(PSU, on_delete=models.CASCADE)
-    country = models.CharField(max_length=kGenericMaxLength)
-    price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=kLongMaxLength)
 
     class Meta:
         constraints = [
@@ -214,11 +210,8 @@ class Storage(models.Model):
     def __str__(self):
         return f"{self.name} {self.size} GB"
 
-class StoragePrice(models.Model):
+class StoragePrice(PartPrice):
     StorageId = models.ForeignKey(Storage, on_delete=models.CASCADE)
-    country = models.CharField(max_length=kGenericMaxLength)
-    price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=kLongMaxLength)
 
     class Meta:
         constraints = [
@@ -249,11 +242,8 @@ class Case(models.Model):
     def __str__(self):
         return f"{self.name}"
 
-class CasePrice(models.Model):
+class CasePrice(PartPrice):
     CaseId = models.ForeignKey(Case, on_delete=models.CASCADE)
-    country = models.CharField(max_length=kGenericMaxLength)
-    price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=kLongMaxLength)
 
     class Meta:
         constraints = [
