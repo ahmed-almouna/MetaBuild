@@ -12,7 +12,7 @@ urlpatterns = [
     path("addpsu/", views.AddPSU.as_view()),
     path("addcooler/", views.AddCooler.as_view()),
     path("addram/", views.AddRAM.as_view()),
-    path("addcase/", views.AddCase.as_view()),
+    path("addcase/", views.AddCase.as_view())
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns) # allows the API to be accessed with different extensions e.g. 

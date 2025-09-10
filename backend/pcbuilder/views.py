@@ -2,13 +2,11 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
+from .utils.constraints import Countries 
 from . import serializers
 from .utils.create_helpers import *
 
 # This file contains the apps's views aka API end-points aka URLs.
-
-# Constants
-kDefaultCountry = 'US' # default country for price data
 
 # Gives a PC build.
 @api_view(['GET'])
@@ -61,8 +59,8 @@ class AddPartView(APIView):
         price, buyLink = getPriceAndBuyLink(listings.get('prices'))
         priceData = {
             f'{partInstance.__class__.__name__}Id': partInstance.id, # get the name of the model dynamically
-            'country': kDefaultCountry,
-            'price': price,
+            'country': Countries.unitedStates,
+            'price'  : price,
             'buyLink': buyLink
         }
         priceSerializer = self.priceSerializer(data=priceData)
@@ -70,7 +68,6 @@ class AddPartView(APIView):
             priceSerializer.save()
 
         return Response(partSerializer.data, status=status.HTTP_201_CREATED)
-
 
 # Concrete view to add a CPU to the db.
 class AddCPU(AddPartView):
@@ -80,20 +77,20 @@ class AddCPU(AddPartView):
     @staticmethod
     def partDataBuilder(data, specs):
         return {
-            'pcPartPickerId' : data.get('id'),
-            'model'          : getModel(data.get('name'), "CPU"),
-            'brand'          : specs.get('Manufacturer'),
-            'series'         : getCPUSeries(specs.get('Series'), specs.get('Manufacturer')),
+            'pcPartPickerId' : safeStr(data.get('id')),
+            'model'          : safeStr(getModel(data.get('name'), "CPU")).upper(),
+            'brand'          : safeStr(specs.get('Manufacturer')).upper(),
+            'series'         : getCPUSeries(specs.get('Series')),
             'generation'     : getGeneration(data.get('name'), "CPU"),
-            'socket'         : specs.get('Socket'),
-            'architecture'   : specs.get('Microarchitecture'),
+            'socket'         : safeStr(specs.get('Socket')).upper(),
+            'architecture'   : safeStr(specs.get('Microarchitecture')).upper(),
             'coreCount'      : specs.get('Core Count'),
             'threadCount'    : specs.get('Thread Count'),
             'boostClock'     : getCPUSpeed(specs.get('Performance Core Boost Clock')),
             'tdp'            : getNumber(specs.get('TDP')),
             'cacheSize'      : getCPUCacheSize(specs.get('L2 Cache'), specs.get('L3 Cache')),
             'coolerIncluded' : specs.get('Includes Cooler', False),
-            'integratedGPU'  : specs.get('Integrated Graphics', "None"),
+            'integratedGPU'  : safeStr(specs.get('Integrated Graphics', "NONE")).upper(),
         }
 
 
@@ -103,20 +100,24 @@ class AddGPU(AddPartView):
 
     @staticmethod
     def partDataBuilder(data, specs):
+        if btfConnector in safeStr(specs.get('Interface')).upper():# don't accept GPUs with BTF connectors #/// maybe you show send something different than None
+            return None
+        if data.get('Uses Back-Connect Connectors') == "Yes":#/// relocate this to mobo
+            return None
         return {
-            'pcPartPickerId'      : data.get('id'),
-            'model'               : getModel(data.get('name'), "GPU"),
-            'brand'               : getGPUBrand(specs.get('Chipset')),
-            'manufacturer'        : specs.get('Manufacturer'),
-            'name'                : getGPUName(data.get('name'), specs.get('Manufacturer')),
+            'pcPartPickerId'      : safeStr(data.get('id')),
+            'model'               : safeStr(getModel(data.get('name'), "GPU")).upper(),
+            'brand'               : safeStr(getGPUBrand(specs.get('Chipset'))).upper(),
+            'manufacturer'        : safeStr(specs.get('Manufacturer')).upper(),
+            'name'                : safeStr(getGPUName(data.get('name'), specs.get('Manufacturer'))).upper(),
             'series'              : getGeneration(data.get('name'), "GPU"),
             'boostClock'          : getNumber(specs.get('Boost Clock')),
             'tdp'                 : getNumber(specs.get('TDP')),
             'vramSize'            : getNumber(specs.get('Memory')),
-            'vramType'            : specs.get('Memory Type'),
+            'vramType'            : safeStr(specs.get('Memory Type')).upper(),
             'length'              : getNumber(specs.get('Length')),
             'expansionSlots'      : getNumber(specs.get('Total Slot Width')),
-            'pciePowerConnectors' : getGPUPCIePowerConnectors(specs.get('External Power')),
+            'pciePowerConnectors' : safeStr(getGPUPCIePowerConnectors(specs.get('External Power'))).upper(),
         }
         
 
@@ -126,15 +127,21 @@ class AddStorage(AddPartView):
 
     @staticmethod
     def partDataBuilder(data, specs):
+        isSSD = safeStr(specs.get('Type')).upper() == 'SSD'
+        formFactor = getStorageFormFactor(specs.get('Form Factor'))
+        isNVMe = specs.get('NVME')
+        if storageIsValid(isSSD, formFactor, isNVMe) == False: #/// see if you can send smth more meaningful than None
+            return None
+
         return {
-            'pcPartPickerId' : data.get('id'),
-            'manufacturer'   : specs.get('Manufacturer'),
-            'name'           : getStorageName(data.get('name'), specs.get('Manufacturer')),
+            'pcPartPickerId' : safeStr(data.get('id')),
+            'manufacturer'   : safeStr(specs.get('Manufacturer')).upper(),
+            'name'           : safeStr(getStorageName(data.get('name'), specs.get('Manufacturer'))).upper(),
             'size'           : getStorageSize(specs.get('Capacity')),
-            'isSSD'          : specs.get('Type').upper() == 'SSD',
-            'formFactor'     : getStorageFormFactor(specs.get('Form Factor')),
+            'isSSD'          : isSSD,
+            'formFactor'     : formFactor,
             'cacheSize'      : getNumber(specs.get('Cache', "0")),
-            'isNVMe'         : specs.get('NVME'),
+            'isNVMe'         : isNVMe,
         }
         
 
@@ -145,20 +152,20 @@ class AddPSU(AddPartView):
     @staticmethod
     def partDataBuilder(data, specs):
         return {
-            'pcPartPickerId'         : data.get('id'),
-            'manufacturer'           : specs.get('Manufacturer'),
-            'name'                   : getPSUName(data.get('name'), specs.get('Manufacturer')),
+            'pcPartPickerId'         : safeStr(data.get('id')),
+            'manufacturer'           : safeStr(specs.get('Manufacturer')).upper(),
+            'name'                   : safeStr(getPSUName(data.get('name'), specs.get('Manufacturer'))).upper(),
             'wattage'                : getNumber(specs.get('Wattage')),
-            'isModular'              : specs.get('Modular', "No").upper() == 'FULL',
-            'efficiency'             : getPSUEfficiency(specs.get('Efficiency Rating', "80+")),
-            'formFactor'             : specs.get('Type', "ATX"),
-            'cpu8PinConnectors'      : getNumber(specs.get('EPS 8-pin Connectors')),
-            'gpu16PinConnectors'     : getNumber(specs.get('PCIe 16-pin 12VHPWR/12V-2x6 Connectors')),
-            'gpu12PinConnectors'     : getNumber(specs.get('PCIe 12-pin Connectors')),
-            'gpu8PinConnectors'      : getNumber(specs.get('PCIe 8-pin Connectors')),
-            'gpu6Plus2PinConnectors' : getNumber(specs.get('PCIe 6+2-pin Connectors')),
-            'gpu6PinConnectors'      : getNumber(specs.get('PCIe 6-pin Connectors')),
-            'sataConnectors'         : getNumber(specs.get('SATA Connectors')),
+            'isModular'              : 'FULL' in safeStr(specs.get('Modular')).upper(),
+            'efficiency'          : getPSUEfficiency(specs.get('Efficiency Rating', PSUEfficiencies.eightyPlus.value)),
+            'formFactor'             : safeStr(specs.get('Type', 'ATX')).upper(),
+            'cpu8PinConnectors'      : specs.get('EPS 8-pin Connectors'),
+            'gpu16PinConnectors'     : specs.get('PCIe 16-pin 12VHPWR/12V-2x6 Connectors'),
+            'gpu12PinConnectors'     : specs.get('PCIe 12-pin Connectors'),
+            'gpu8PinConnectors'      : specs.get('PCIe 8-pin Connectors'),
+            'gpu6Plus2PinConnectors' : specs.get('PCIe 6+2-pin Connectors'),
+            'gpu6PinConnectors'      : specs.get('PCIe 6-pin Connectors'),
+            'sataConnectors'         : specs.get('SATA Connectors'),
         }
 
 
@@ -169,9 +176,9 @@ class AddCooler(AddPartView):
     @staticmethod
     def partDataBuilder(data, specs):
         return {
-            'pcPartPickerId'   : data.get('id'),
-            'manufacturer'     : specs.get('Manufacturer'),
-            'name'             : getCoolerName(data.get('name'), specs.get('Model'), specs.get('Manufacturer')),
+            'pcPartPickerId'   : safeStr(data.get('id')),
+            'manufacturer'     : safeStr(specs.get('Manufacturer')).upper(),
+            'name'   : safeStr(getCoolerName(data.get('name'), specs.get('Model'), specs.get('Manufacturer'))).upper(),
             'supportedSockets' : specs.get('CPU Socket'),
             'isLiquid'         : isLiquidCooler(specs.get('Water Cooled')),
             'height'           : getCoolerHeight(specs.get('Height', "0"), specs.get('Water Cooled')),
@@ -185,13 +192,15 @@ class AddRAM(AddPartView):
 
     @staticmethod
     def partDataBuilder(data, specs):
+        if "SODIMM" in data.get('Form Factor', "").upper(): # don't accept laptop RAM #///
+            return None
         return {
-            'pcPartPickerId' : data.get('id'),
-            'manufacturer'   : specs.get('Manufacturer'),
-            'name'           : getRAMName(data.get('name'), specs.get('Manufacturer')),
+            'pcPartPickerId' : safeStr(data.get('id')),
+            'manufacturer'   : safeStr(specs.get('Manufacturer')).upper(),
+            'name'           : safeStr(getRAMName(data.get('name'), specs.get('Manufacturer'))).upper(),
             'count'          : getRAMModule(specs.get('Modules'), 'COUNT'),
             'size'           : getRAMModule(specs.get('Modules'), 'SIZE'),
-            'type'           : getRAMType(specs.get('Speed')), # spped also contains type i.e. "DDR5-6000"
+            'type'           : getRAMType(specs.get('Speed')), # speed also contains type i.e. "DDR5-6000"
             'speed'          : getRAMSpeed(specs.get('Speed')),
         }
         
@@ -202,16 +211,21 @@ class AddCase(AddPartView):
 
     @staticmethod
     def partDataBuilder(data, specs):
-        expansionSlots, expansionSlotsViaRiser = getCaseExpansionSlots(specs.get('Expansion Slots'))
-        includedPSUWattage = getNumber(specs.get('Power Supply', "0"))
+        moboFormFactors = specs.get('Motherboard Form Factor')
+        if isinstance(moboFormFactors, list):
+            moboFormFactors = [formFactor.upper() for formFactor in moboFormFactors]
+        else:
+            moboFormFactors = [moboFormFactors.upper()]
+        expansionSlots, expansionSlotsViaRiser = getCaseExpansionSlots(specs.get('Expansion Slots')) #// make it so a case can have no exapnsion slots
+        includedPSUWattage = getNumber(specs.get('Power Supply'))
         return {
-            'pcPartPickerId'          : data.get('id'),
-            'manufacturer'            : specs.get('Manufacturer'),
-            'name'                    : getCaseName(data.get('name'), specs.get('Manufacturer')),
+            'pcPartPickerId'          : safeStr(data.get('id')),
+            'manufacturer'            : safeStr(specs.get('Manufacturer')).upper(),
+            'name'                    : safeStr(getCaseName(data.get('name'), specs.get('Manufacturer'))).upper(),
             'type'                    : getCaseType(specs.get('Type')),
-            'formFactor'          : getCaseFormFactor(specs.get('Type')),#type also contains formfactor "ATX Mid Tower"
-            'moboFormFactors'         : specs.get('Motherboard Form Factor'), 
-            'maxGPULength'            : getMaxGPULength(specs.get('Maximum Video Card Length')),
+            'formFactor'        : getCaseFormFactor(specs.get('Type')), # type also contains formfactor "ATX Mid Tower"
+            'moboFormFactors'         : moboFormFactors, 
+            'maxGPULength'            : getCaseMaxGPULength(specs.get('Maximum Video Card Length')), #// make it so a case can have no max GPU length
             'expansionSlots'          : expansionSlots, 
             'expansionSlotsViaRiser'  : expansionSlotsViaRiser, 
             'height'                  : getCaseDimensions(specs.get('Dimensions'), 'HEIGHT'),

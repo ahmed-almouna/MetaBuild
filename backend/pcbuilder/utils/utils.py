@@ -45,3 +45,10 @@ def roundToNearest(number):
     if len(str(number)) > 3:
         return number // 1000 * 1000
     return number // 100 * 100
+
+# just like str() but returns "" instead of "None" when value is None
+def safeStr(value):
+    if value is None:
+        return ""
+    else:
+        return str(value)

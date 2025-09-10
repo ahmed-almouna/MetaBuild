@@ -1,86 +1,50 @@
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.db.models.constraints import UniqueConstraint
-
-# limit options for countries
+from django.core.validators import MinLengthValidator, MaxLengthValidator, MinValueValidator, MaxValueValidator
+from .utils.constraints import *
 
 # This file contains the db's models.
 
-# Constants
-kGenericMaxLength = 100
-kLongMaxLength    = 500 # for generic string that might be bigger than 100 characters long e.g. links
-
-# Abstract model for price tables
-class PartPrice(models.Model):
-    country = models.CharField(max_length=kGenericMaxLength)
-    price = models.PositiveIntegerField()
-    buyLink = models.URLField(max_length=kLongMaxLength)
-
-    class Meta:
-        abstract = True
-
 class CPU(models.Model):
-    pcPartPickerId = models.CharField(max_length=kGenericMaxLength, unique=True)
-    brand          = models.CharField(max_length=kGenericMaxLength)              # e.g. AMD
-    series         = models.CharField(max_length=kGenericMaxLength)              # e.g. Ryzen 5
+    pcPartPickerId = models.CharField(unique=True, validators=[MinLengthValidator(kPPPIdLength), MaxLengthValidator(kPPPIdLength)])
+    brand          = models.CharField(choices=CPUBrands.choices)                 
+    series         = models.CharField(choices=CPUSeries.choices)                 
     model          = models.CharField(max_length=kGenericMaxLength, unique=True) # e.g. 7800X
     generation     = models.PositiveIntegerField()                               # e.g. 7000
-    architecture   = models.CharField(max_length=kGenericMaxLength)              # e.g. Zen 5
-    socket         = models.CharField(max_length=kGenericMaxLength)
-    coreCount      = models.PositiveIntegerField()                               # effeciency cores + performance cores
-    threadCount    = models.PositiveIntegerField()
-    boostClock     = models.PositiveIntegerField()
-    cacheSize      = models.PositiveIntegerField()                               # L2 + L3
-    tdp            = models.PositiveIntegerField()                               # i.e. wattage
-    integratedGPU  = models.CharField(max_length=kGenericMaxLength)              # can be specific model or none
+    architecture   = models.CharField(choices=CPUArchitectures.choices)          
+    socket         = models.CharField(choices=Sockets.choices)
+    coreCount      = models.IntegerField(choices=EvenCounts.choices)             # effeciency cores + performance cores
+    threadCount    = models.IntegerField(choices=EvenCounts.choices)
+    boostClock     = models.IntegerField(validators=[MinValueValidator(kMinCPUBoostClock), MaxValueValidator(kMaxCPUBoostClock)]) # in MHz
+    cacheSize      = models.IntegerField(validators=[MinValueValidator(kMinCPUCacheSize), MaxValueValidator(kMaxCPUCacheSize)])   # L2 + L3, in megabytes
+    tdp            = models.IntegerField(validators=[MinValueValidator(kMinCPUTDP), MaxValueValidator(kMaxCPUTDP)])               # i.e. wattage
+    integratedGPU  = models.CharField(choices=CPUGraphics.choices)               
     coolerIncluded = models.BooleanField()
     rating         = models.PositiveIntegerField(null=True, blank=True)          # personal rating
 
     def __str__(self):
-        return f"{self.model}"
-
-# Used to store the price of CPUs, each CPU has multiple prices - 1 in each country ideally
-class CPUPrice(PartPrice):
-    CPUId = models.ForeignKey(CPU, on_delete=models.CASCADE)
-
-    class Meta:
-        constraints = [
-            UniqueConstraint(fields=['CPUId', 'country'], name='unique_cpu_country_price')# 1 price per CPU per country
-        ]
-    def __str__(self):
-        return f"{self.CPUId} ({self.country})"
-
+        return f"{self.series} {self.model}"
 
 
 class GPU(models.Model):
-    pcPartPickerId      = models.CharField(max_length=kGenericMaxLength, unique=True)
-    brand               = models.CharField(max_length=kGenericMaxLength)              # e.g. Nvidia
-    manufacturer        = models.CharField(max_length=kGenericMaxLength)              # e.g. Gigabyte
+    pcPartPickerId      = models.CharField(unique=True, validators=[MinLengthValidator(kPPPIdLength), MaxLengthValidator(kPPPIdLength)])
+    brand               = models.CharField(choices=GPUBrands.choices)                 
+    manufacturer        = models.CharField(max_length=kGenericMaxLength)              # e.g. Asus
     name                = models.CharField(max_length=kGenericMaxLength)              # e.g. Ventus 2X
     model               = models.CharField(max_length=kGenericMaxLength, unique=True) # e.g. RTX 3060, RTX 3060 Ti
-    series              = models.CharField(max_length=kGenericMaxLength)# eg 3000 this is like what generation is to CPU
-    vramSize            = models.PositiveIntegerField()
-    vramType            = models.CharField(max_length=kGenericMaxLength)
-    boostClock          = models.PositiveIntegerField()
-    length              = models.PositiveIntegerField()                               # in mm
-    expansionSlots      = models.PositiveIntegerField()
-    pciePowerConnectors = models.CharField(max_length=kGenericMaxLength)# eg 1 x 8-pin + 1 x 6-pin, can also be None
-    tdp                 = models.PositiveIntegerField()
+    series              = models.PositiveIntegerField()                               # e.g. 3000, this is like what generation is to CPU
+    vramSize            = models.IntegerField(choices=EvenCounts.choices)             # in Gigabytes
+    vramType            = models.CharField(choices=GPUVRAMTypes.choices)
+    boostClock          = models.IntegerField(validators=[MinValueValidator(kMinGPUBoostClock), MaxValueValidator(kMaxGPUBoostClock)])
+    length              = models.IntegerField(validators=[MinValueValidator(kMinGPULength), MaxValueValidator(kMaxGPULength)]) # in mm
+    expansionSlots      = models.IntegerField(validators=[MinValueValidator(kMinGPUExpansionSlots), MaxValueValidator(kMaxGPUExpansionSlots)])
+    pciePowerConnectors = models.CharField(choices=GPUPowerConnectors.choices)
+    tdp                 = models.IntegerField(validators=[MinValueValidator(kMinGPUTDP), MaxValueValidator(kMaxGPUTDP)])
     rating              = models.PositiveIntegerField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.model}"
-
-class GPUPrice(PartPrice):
-    GPUId = models.ForeignKey(GPU, on_delete=models.CASCADE)
-
-    class Meta:
-        constraints = [
-            UniqueConstraint(fields=['GPUId', 'country'], name='unique_gpu_country_price')
-        ]
-    def __str__(self):
-        return f"{self.GPUId} ({self.country})"
-
 
 
 class Mobo(models.Model): #Note///////////////////
@@ -101,13 +65,13 @@ class Mobo(models.Model): #Note///////////////////
 
 
 class RAM(models.Model):
-    pcPartPickerId = models.CharField(max_length=kGenericMaxLength, unique=True)
+    pcPartPickerId = models.CharField(unique=True, validators=[MinLengthValidator(kPPPIdLength), MaxLengthValidator(kPPPIdLength)])
     manufacturer   = models.CharField(max_length=kGenericMaxLength)
     name           = models.CharField(max_length=kGenericMaxLength)
-    count          = models.PositiveIntegerField()                               # number of sticks e.g. 1, 2, 4
-    size           = models.PositiveIntegerField()                               # per stick
-    type           = models.CharField(max_length=kGenericMaxLength)              # e.g. DDR4, DDR5
-    speed          = models.PositiveIntegerField()                                       
+    count          = models.IntegerField(choices=RAMCount.choices) # number of sticks
+    size           = models.IntegerField(choices=RAMSize.choices)  # size per stick
+    type           = models.CharField(choices=RAMTypes.choices)                              
+    speed          = models.IntegerField(validators=[MinValueValidator(kMinRAMSpeed), MaxValueValidator(kMaxRAMSpeed)])                                            
 
     class Meta:
         constraints = [
@@ -115,6 +79,123 @@ class RAM(models.Model):
         ]
     def __str__(self):
         return f"{self.name} {self.count} x {self.size}"
+
+
+class Cooler(models.Model):
+    pcPartPickerId   = models.CharField(unique=True, validators=[MinLengthValidator(kPPPIdLength), MaxLengthValidator(kPPPIdLength)])
+    manufacturer     = models.CharField(max_length=kGenericMaxLength)    # e.g. Cooler Master
+    name             = models.CharField(max_length=kGenericMaxLength) 
+    supportedSockets = ArrayField(models.CharField(max_length=kGenericMaxLength), validators=[validateCoolerSockets]) #/// see if validator works
+    isLiquid         = models.BooleanField()
+    height           = models.PositiveIntegerField()                             # mostly for air coolers
+    width            = models.IntegerField(choices=CoolerWidths.choices) # only for liquid coolers
+    rating           = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name', 'height', 'width'], name='unique_cooler_name_height_width') # some coolers
+            # have the same model name for different variants e.g. 'Aqua Elite V3' for the 120, 240, and 360 mm versions
+        ]
+    def __str__(self):
+        return f"{self.name}"
+
+
+class PSU(models.Model):
+    pcPartPickerId         = models.CharField(unique=True, validators=[MinLengthValidator(kPPPIdLength), MaxLengthValidator(kPPPIdLength)])
+    manufacturer           = models.CharField(max_length=kGenericMaxLength)
+    name                   = models.CharField(max_length=kGenericMaxLength)
+    wattage                = models.IntegerField(validators=[MinValueValidator(kMinPSUWattage), MaxValueValidator(kMaxPSUWattage)])
+    isModular              = models.BooleanField()
+    efficiency             = models.CharField(choices=PSUEfficiencies.choices)
+    formFactor             = models.CharField(choices=PSUFormFactors.choices)
+    cpu8PinConnectors      = models.IntegerField(validators=[MinValueValidator(kMinPowerConnectors), MaxValueValidator(kMaxPowerConnectors)])
+    gpu16PinConnectors     = models.IntegerField(validators=[MinValueValidator(kMinPowerConnectors), MaxValueValidator(kMaxPowerConnectors)])
+    gpu12PinConnectors     = models.IntegerField(validators=[MinValueValidator(kMinPowerConnectors), MaxValueValidator(kMaxPowerConnectors)])
+    gpu8PinConnectors      = models.IntegerField(validators=[MinValueValidator(kMinPowerConnectors), MaxValueValidator(kMaxPowerConnectors)])
+    gpu6Plus2PinConnectors = models.IntegerField(validators=[MinValueValidator(kMinPowerConnectors), MaxValueValidator(kMaxPowerConnectors)])
+    gpu6PinConnectors      = models.IntegerField(validators=[MinValueValidator(kMinPowerConnectors), MaxValueValidator(kMaxPowerConnectors)])
+    sataConnectors         = models.IntegerField(validators=[MinValueValidator(kMinPowerConnectors), MaxValueValidator(kMaxPowerConnectors)])
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name', 'wattage'], name='unique_psu_name_wattage')
+        ]
+    def __str__(self):
+        return f"{self.name} {self.wattage}W"
+
+
+class Storage(models.Model):
+    pcPartPickerId = models.CharField(unique=True, validators=[MinLengthValidator(kPPPIdLength), MaxLengthValidator(kPPPIdLength)]) 
+    manufacturer   = models.CharField(max_length=kGenericMaxLength)
+    name           = models.CharField(max_length=kGenericMaxLength)
+    size           = models.IntegerField(validators=[MinValueValidator(kMinStorageSize), MaxValueValidator(kMaxStorageSize)])
+    isSSD          = models.BooleanField()
+    formFactor     = models.CharField(choices=StorageFormFactors.choices) 
+    cacheSize      = models.IntegerField(validators=[MinValueValidator(kMinStorageCacheSize), MaxValueValidator(kMaxStorageCacheSize)]) # in MB
+    isNVMe         = models.BooleanField() # for SSDs
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['name', 'size'], name='unique_storage_name_size')
+        ]
+    def __str__(self):
+        return f"{self.name} {self.size} GB"
+
+
+class Case(models.Model):
+    pcPartPickerId          = models.CharField(unique=True, validators=[MinLengthValidator(kPPPIdLength), MaxLengthValidator(kPPPIdLength)])
+    manufacturer            = models.CharField(max_length=kGenericMaxLength)
+    name                    = models.CharField(max_length=kGenericMaxLength, unique=True)
+    type                    = models.CharField(choices=CaseTypes.choices)
+    formFactor              = models.CharField(choices=CaseFormFactors.choices)
+    moboFormFactors         = ArrayField(models.CharField(max_length=kGenericMaxLength), validators=[validateCaseMoboFormFactors])
+    maxGPULength            = models.IntegerField(validators=[MinValueValidator(kMinCaseGPULength), MaxValueValidator(kMaxCaseGPULength)])
+    expansionSlots          = models.IntegerField(validators=[MinValueValidator(kMinCaseExpansionSlots), MaxValueValidator(kMaxCaseExpansionSlots)])
+    expansionSlotsViaRiser  = models.IntegerField(validators=[MinValueValidator(kMinCaseExpansionSlots), MaxValueValidator(kMaxCaseExpansionSlots)])
+    height                  = models.IntegerField(validators=[MinValueValidator(kMinCaseDimensions), MaxValueValidator(kMaxCaseDimensions)])         # how tall when the case is placed in its correct orientation
+    width                   = models.IntegerField(validators=[MinValueValidator(kMinCaseDimensions), MaxValueValidator(kMaxCaseDimensions)])         # the shorter side of the 2 other dimensions
+    length                  = models.IntegerField(validators=[MinValueValidator(kMinCaseDimensions), MaxValueValidator(kMaxCaseDimensions)])         # the longer side of the 2 other dimensions
+    threePointFiveDriveBays = models.IntegerField(validators=[MinValueValidator(kMinCaseDriveBays), MaxValueValidator(kMaxCaseDriveBays)])
+    twoPointFiveDriveBays   = models.IntegerField(validators=[MinValueValidator(kMinCaseDriveBays), MaxValueValidator(kMaxCaseDriveBays)])
+    includedPSUWattage      = models.IntegerField(validators=[MinValueValidator(kMinIncludedPSUWattage), MaxValueValidator(kMaxIncludedPSUWattage)]) # wattage of included PSU, can be "none"
+
+    def __str__(self):
+        return f"{self.name}"
+
+
+# Price models
+
+# Abstract model for price tables
+class PartPrice(models.Model):
+    country = models.CharField(choices=Countries.choices)
+    price   = models.PositiveIntegerField(validators=[MinValueValidator(kMinPrice), MaxValueValidator(kMaxPrice)])
+    buyLink = models.URLField(max_length=kLongMaxLength)
+
+    class Meta:
+        abstract = True
+
+# Used to store the price of CPUs, each CPU ideally has 1 price per country
+class CPUPrice(PartPrice):
+    CPUId = models.ForeignKey(CPU, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['CPUId', 'country'], name='unique_cpu_country_price') # 1 price per CPU per country
+        ]
+    def __str__(self):
+        return f"{self.CPUId} ({self.country})"
+
+
+class GPUPrice(PartPrice):
+    GPUId = models.ForeignKey(GPU, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['GPUId', 'country'], name='unique_gpu_country_price')
+        ]
+    def __str__(self):
+        return f"{self.GPUId} ({self.country})"
+
 
 class RAMPrice(PartPrice):
     RAMId = models.ForeignKey(RAM, on_delete=models.CASCADE)
@@ -127,25 +208,6 @@ class RAMPrice(PartPrice):
         return f"{self.RAMId} ({self.country})"
 
 
-
-class Cooler(models.Model):
-    pcPartPickerId   = models.CharField(max_length=kGenericMaxLength, unique=True)
-    manufacturer     = models.CharField(max_length=kGenericMaxLength)              # e.g. Cooler Master
-    name             = models.CharField(max_length=kGenericMaxLength) 
-    supportedSockets = ArrayField(models.CharField(max_length=kGenericMaxLength))
-    isLiquid         = models.BooleanField()
-    height           = models.PositiveIntegerField()                               # in mm, mostly for air coolers
-    width            = models.PositiveIntegerField()                               # only for liquid coolers
-    rating           = models.PositiveIntegerField(null=True, blank=True)
-
-    class Meta:
-        constraints = [
-            UniqueConstraint(fields=['name', 'height', 'width'], name='unique_cooler_name_height_width') # some coolers
-            # have the same model name for different variants e.g. 'Aqua Elite V3' for the 120, 240, and 360 mm versions
-        ]
-    def __str__(self):
-        return f"{self.name}"
-
 class CoolerPrice(PartPrice):
     CoolerId = models.ForeignKey(Cooler, on_delete=models.CASCADE)
 
@@ -156,30 +218,6 @@ class CoolerPrice(PartPrice):
     def __str__(self):
         return f"{self.CoolerId} ({self.country})"
 
-
-
-class PSU(models.Model):
-    pcPartPickerId         = models.CharField(max_length=kGenericMaxLength, unique=True)
-    manufacturer           = models.CharField(max_length=kGenericMaxLength)
-    name                   = models.CharField(max_length=kGenericMaxLength)
-    wattage                = models.PositiveIntegerField()
-    isModular              = models.BooleanField()
-    efficiency             = models.CharField(max_length=kGenericMaxLength)
-    formFactor             = models.CharField(max_length=kGenericMaxLength)
-    cpu8PinConnectors      = models.PositiveIntegerField()
-    gpu16PinConnectors     = models.PositiveIntegerField()
-    gpu12PinConnectors     = models.PositiveIntegerField()
-    gpu8PinConnectors      = models.PositiveIntegerField()
-    gpu6Plus2PinConnectors = models.PositiveIntegerField()
-    gpu6PinConnectors      = models.PositiveIntegerField()
-    sataConnectors         = models.PositiveIntegerField()
-
-    class Meta:
-        constraints = [
-            UniqueConstraint(fields=['name', 'wattage'], name='unique_psu_name_wattage')
-        ]
-    def __str__(self):
-        return f"{self.name} {self.wattage}W"
 
 class PSUPrice(PartPrice):
     PSUId = models.ForeignKey(PSU, on_delete=models.CASCADE)
@@ -192,24 +230,6 @@ class PSUPrice(PartPrice):
         return f"{self.PSUId} ({self.country})"
 
 
-
-class Storage(models.Model):
-    pcPartPickerId = models.CharField(max_length=kGenericMaxLength, unique=True) 
-    manufacturer   = models.CharField(max_length=kGenericMaxLength)
-    name           = models.CharField(max_length=kGenericMaxLength)
-    size           = models.PositiveIntegerField()                               # in GB
-    isSSD          = models.BooleanField()
-    formFactor     = models.CharField(max_length=kGenericMaxLength)              # e.g. M.2, 2.5, 3.5
-    cacheSize      = models.PositiveIntegerField()                               # in MB
-    isNVMe         = models.BooleanField()                                       # for SSDs
-
-    class Meta:
-        constraints = [
-            UniqueConstraint(fields=['name', 'size'], name='unique_storage_name_size')
-        ]
-    def __str__(self):
-        return f"{self.name} {self.size} GB"
-
 class StoragePrice(PartPrice):
     StorageId = models.ForeignKey(Storage, on_delete=models.CASCADE)
 
@@ -219,28 +239,7 @@ class StoragePrice(PartPrice):
         ]
     def __str__(self):
         return f"{self.StorageId} ({self.country})"
-    
 
-
-class Case(models.Model):
-    pcPartPickerId          = models.CharField(max_length=kGenericMaxLength, unique=True)
-    manufacturer            = models.CharField(max_length=kGenericMaxLength)
-    name                    = models.CharField(max_length=kGenericMaxLength, unique=True)
-    type                    = models.CharField(max_length=kGenericMaxLength)# e.g. ATX, micro ATX, mini ITX
-    formFactor              = models.CharField(max_length=kGenericMaxLength)# e.g. full tower, mid tower, mini tower
-    moboFormFactors         = ArrayField(models.CharField(max_length=kGenericMaxLength))# supported mobo form factors
-    maxGPULength            = models.PositiveIntegerField()
-    expansionSlots          = models.PositiveIntegerField()
-    expansionSlotsViaRiser  = models.PositiveIntegerField()
-    height                  = models.PositiveIntegerField()#how tall when the case is placed in its correct orientation
-    width                   = models.PositiveIntegerField()                # the shorter side of the 2 other dimensions
-    length                  = models.PositiveIntegerField()                # the longer side of the 2 other dimensions
-    threePointFiveDriveBays = models.PositiveIntegerField()
-    twoPointFiveDriveBays   = models.PositiveIntegerField()
-    includedPSUWattage      = models.PositiveIntegerField()                # wattage of included PSU or none
-
-    def __str__(self):
-        return f"{self.name}"
 
 class CasePrice(PartPrice):
     CaseId = models.ForeignKey(Case, on_delete=models.CASCADE)

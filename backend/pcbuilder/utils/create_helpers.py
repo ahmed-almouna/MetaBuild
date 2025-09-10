@@ -1,6 +1,7 @@
 import math
 from .regex import *
 from .utils import *
+from .constraints import *
 
 # This file contains functions to help convert the data from a (PCPartPicker) request to match our DB structure.
 # Specifically, these functions are used by API Views that add new PC parts to the parts db.
@@ -24,18 +25,18 @@ def getGeneration(name, part):
         return None
 
     model = getModel(name, part)
-    model = getNumber(model) # e.g. get number only e.g. 12400 from 12400K
+    model = getNumber(model) # get number only e.g. get 12400 from 12400K
     generation = roundToNearest(model)
     return generation
 
 def getPriceAndBuyLink(listings):
     if listings is None:
-        return None
+        return None, None
 
     price = None
     buyLink = None
     for item in listings:
-        if item.get('availability') and item.get('availability').upper() == 'IN STOCK': # safely check for availability
+        if item.get('availability', "").upper() == 'IN STOCK':
             buyLink = item.get('buyLink')
             if price := getDecimalNumber(item.get('price')):
                 price = math.ceil(price)
@@ -45,12 +46,18 @@ def getPriceAndBuyLink(listings):
 
 
 # CPU specific --------------------------------------
-def getCPUSeries(series, manufacturer):
-    if series is None or manufacturer is None:
+def getCPUSeries(series):
+    if series is None:
         return None
-    
-    series = re.sub(re.escape(str(manufacturer)), '', str(series), re.IGNORECASE) # escape to not treat any chrachter as regex
-    return series
+
+    series = str(series).upper()
+    cpuSeries = None
+    for validSeries in CPUSeries.values:
+        if validSeries in series:
+            cpuSeries = validSeries
+            break
+    return cpuSeries
+
 
 def getCPUSpeed(speedInGHz): # converts GHz to MHz e.g. 5.7 GHz to 5700
     if speedInGHz is None:
@@ -88,7 +95,8 @@ def getGPUBrand(chipset): # chipset is something like 'Radeon RX 9070 XT'
         return None
     
     brand = None
-    prefix = extractPattern(chipset, gpuModelPrefixPattern).upper()
+    if prefix := extractPattern(chipset, gpuModelPrefixPattern):
+        prefix = prefix.upper()
     
     if prefix == 'RTX' or prefix == 'GTX':
         brand = 'NVIDIA'
@@ -121,8 +129,13 @@ def getStorageFormFactor(formFactor):
     if formFactor is None:
         return None
 
-    formFactor = extractPattern(formFactor, storageFormFactorPattern)
-    return formFactor
+    formFactor = str(formFactor).upper()
+    storageFormFactor = None
+    for validFormFactor in StorageFormFactors.values:
+        if validFormFactor in formFactor:
+            storageFormFactor = validFormFactor
+            break
+    return storageFormFactor
 
 def getStorageSize(sizeString):
     if sizeString is None:
@@ -131,9 +144,21 @@ def getStorageSize(sizeString):
     size = getDecimalNumber(sizeString)
     if extractPattern(sizeString, storageSizePattern): # if storage is in terabytes; convert it to gigabytes
         size *= 1000
-    size = int(size)
+    if size is not None:
+        size = int(size)
 
     return size
+
+def storageIsValid(isSSD, formFactor, isNVMe):
+    if isSSD == False and isNVMe == True:
+        return False # ssd and nvme, ssd and not nvme, not ssd and not nvme
+
+    if isSSD == False:
+        if formFactor == StorageFormFactors.mDot2.value or formFactor == StorageFormFactors.pcie.value:
+            return False
+
+    return True
+
 # ----------------------------------------------------
 
 
@@ -150,11 +175,14 @@ def getPSUEfficiency(efficiency):
     if efficiency is None:
         return None
 
-    if match := extractPattern(efficiency, psuEfficiencyPattern, 2):
-        efficiency = match
-    else:
-        efficiency = '80+'
-    return efficiency
+    efficiency = str(efficiency).upper()
+    psuEfficiency = PSUEfficiencies.eightyPlus.value
+    for validEfficiency in PSUEfficiencies.values:
+        if validEfficiency in efficiency:
+            psuEfficiency = validEfficiency
+            break
+    
+    return psuEfficiency
 # ----------------------------------------------------
 
 
@@ -180,7 +208,6 @@ def isLiquidCooler(type):
             isLiquid = True
         elif match.upper() == 'NO':
             isLiquid = False
-
     return isLiquid
   
 def getCoolerHeight(height, type):
@@ -192,7 +219,6 @@ def getCoolerHeight(height, type):
         return None
     elif height is not None:
         height = int(height)
-
     return height
 
 def getCoolerWidth(type): # type contains the width of liquid coolers i.e. "Yes - 360 mm"
@@ -231,12 +257,18 @@ def getRAMModule(module, type):
             result = int(result)
     return result
 
-def getRAMType(type):
-    if type is None:
+def getRAMType(speed):
+    if speed is None:
         return None
-    
-    type = extractPattern(type, ramTypePattern)
-    return type
+
+    type = str(speed).upper()
+    ramType = None
+    for validType in RAMTypes.values:
+        if validType in type:
+            ramType = validType
+            break
+
+    return ramType
 
 def getRAMSpeed(speed):
     if speed is None:
@@ -261,19 +293,32 @@ def getCaseType(type):
     if type is None:
         return None
 
-    type = extractPattern(type, caseTypePattern)
-    return type
+    # replace "MicroATX" with "Micro ATX" to be consistent with mobo form factor
+    type = str(type).upper()
+    type = type.replace('MICROATX', 'MICRO ATX')
+    
+    caseType = None
+    for validType in CaseTypes.values:
+        if validType in type:
+            caseType = validType
+            break
+    return caseType
 
 def getCaseFormFactor(type):
     if type is None:
         return None
     
-    formFactor = extractPattern(type, caseFormFactorPattern)
-    return formFactor
+    type = str(type).upper()
+    caseFormFactor = None
+    for validFormFactor in CaseFormFactors.values:
+        if validFormFactor in type:
+            caseFormFactor = validFormFactor
+            break
+    return caseFormFactor
 
 def getCaseExpansionSlots(expansionSlots):
     if expansionSlots is None:
-        return None
+        return None, None
 
     # if expansionSlots is a string instead of a list of strings (i.e. the case has only one type of expansion slot);
     # treat it as a list
@@ -292,7 +337,7 @@ def getCaseExpansionSlots(expansionSlots):
                 expansionSlotsViaRiser = int(match)
 
     if regularExpansionSlots == 0 and expansionSlotsViaRiser == 0:
-        return None
+        return None, None
 
     return regularExpansionSlots, expansionSlotsViaRiser
 
@@ -325,12 +370,12 @@ def getCaseDriveBays(driveBays, wantedDriveBay):
 
     numberOfDriveBays = 0
     for driveBay in driveBays:
-        if match := re.search(rf'(\d+)\s(x)\s(Internal\s{re.escape(wantedDriveBay)})', driveBay, re.IGNORECASE):
+        if match := re.search(rf'(\d+)\s(x)\s((Internal|External)\s{re.escape(wantedDriveBay)})', driveBay, re.IGNORECASE):
             numberOfDriveBays = int(match.group(1))
             break
     return numberOfDriveBays
 
-def getMaxGPULength(maxGPULengthString):
+def getCaseMaxGPULength(maxGPULengthString):
     if maxGPULengthString is None:
         return None
 
